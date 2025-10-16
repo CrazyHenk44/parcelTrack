@@ -80,16 +80,16 @@ foreach ($activeResults as $existingResult) {
             $headers .= "Content-type: text/html; charset=UTF-8\r\n";
             $headers .= "From: ParcelTrack <" . $config->smtpFrom . ">\r\n";
 
-            $body = "<html><body>";
-            $body .= "<p>Hallo,</p><p>De status voor je pakket is bijgewerkt:</p>";
+            $body = "<html><body>\r\n";
+            $body .= "<p>Hallo,</p><p>De status voor je pakket is bijgewerkt:</p>\r\n";
 
-            $body .= "<p><b>Vervoerder:</b> {$newResult->shipper}<br>";
-            $body .= "<b>Trackingcode:</b> {$newResult->trackingCode}<br>";
-            $body .= "<b>Status:</b> {$newResult->status}</p>";
+            $body .= "<p><b>Vervoerder:</b> {$newResult->shipper}<br>\r\n";
+            $body .= "<b>Trackingcode:</b> {$newResult->trackingCode}<br>\r\n";
+            $body .= "<b>Status:</b> {$newResult->status}</p>\r\n";
 
-            if ($newResult->eta) $body .= "<p><b>" . $newResult->eta . "</b></p>";
+            if ($newResult->eta) $body .= "<p><b>" . $newResult->eta . "</b></p>\r\n";
 
-            $body .= "<h3>Laatste paar gebeurtenissen:</h3>";
+            $body .= "<h3>Laatste paar gebeurtenissen:</h3>\r\n";
             if (!empty($newResult->events)) {
                 // Sort events in descending order by timestamp
                 $sortedEvents = $newResult->events;
@@ -99,18 +99,18 @@ foreach ($activeResults as $existingResult) {
 
                 $latestEvents = array_slice($sortedEvents, 0, 5);
 
-                $body .= "<ul>";
+                $body .= "<ul>\r\n";
                 foreach ($latestEvents as $event) {
                     $eventTimestamp = DateHelper::formatDutchDate($event->timestamp);
                     $locationInfo = $event->location ? " @ {$event->location}" : "";
-                    $body .= "<li>[{$eventTimestamp}] {$event->description}{$locationInfo}</li>";
+                    $body .= "<li>[{$eventTimestamp}] {$event->description}{$locationInfo}</li>\r\n";
                 } 
-                $body .= "</ul>";
+                $body .= "</ul>\r\n";
                 if (count($sortedEvents) > 5) {
-                    $body .= "<p>...en meer.</p>";
+                    $body .= "<p>...en meer.</p>\r\n";
                 }
             } else {
-                $body .= "<p>Geen gebeurtenissen beschikbaar.</p>";
+                $body .= "<p>Geen gebeurtenissen beschikbaar.</p>\r\n";
             }
 
             // Shipper Web Interface Link
@@ -125,10 +125,10 @@ foreach ($activeResults as $existingResult) {
                 $shipperLink = "https://www.ship24.com/tracking?nums={$newResult->trackingCode}";
             }
             if ($shipperLink) {
-                $body .= "<p><a href=\"{$shipperLink}\">Bekijk op website van vervoerder</a></p>";
+                $body .= "<p><a href=\"{$shipperLink}\">Bekijk op website van vervoerder</a></p>\r\n";
             }
 
-            $body .= "<br>";
+            $body .= "<br>\r\n";
 
             // Add summary of all packages for this recipient
             $otherPackagesHtml = '';
@@ -145,13 +145,13 @@ foreach ($activeResults as $existingResult) {
 
             // Only add the section if there are other packages to show
             if (!empty($otherPackagesHtml)) {
-                $body .= "<h3>Overzicht van je andere pakketten:</h3>";
-                $body .= "<ul>" . $otherPackagesHtml . "</ul>";
+                $body .= "<h3>Overzicht van je andere pakketten:</h3>\r\n";
+                $body .= "<ul>" . $otherPackagesHtml . "</ul>\r\n";
             }
 
             // My Web Interface Link
-            $body .= "<br><p><a href=\"" . $config->parcelTrackUrl . "\">ParcelTrack</a></p>";
-            $body .= "</body></html>";
+            $body .= "<br><p><a href=\"" . $config->parcelTrackUrl . "\">ParcelTrack</a></p>\r\n";
+            $body .= "</body></html>\r\n";
 
             // Using mail() function
             if (mail($recipient, $subject, $body, $headers)) {
