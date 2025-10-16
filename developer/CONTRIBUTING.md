@@ -55,6 +55,49 @@ From the interactive list, you can:
 *   Press `Enter` to see detailed event history.
 *   From the detail view, press `j` to view the **raw JSON response** from the shipper's API. This is invaluable for understanding the data structure and debugging parsing issues.
 
+## Local Development Setup
+
+If you are contributing to ParcelTrack and need to build the Docker image locally for development or testing, follow these steps:
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/CrazyHenk44/parcel-track.git
+    cd parcel-track
+    ```
+
+2.  **Create an environment file:**
+    Copy the example environment file and customize it with your settings.
+    ```bash
+    cp .env.example .env
+    ```
+    Now, edit the `.env` file. To use Ship24, you must add your API key.
+
+3.  **Modify `docker-compose.yml` for local development:**
+    To mount your local source code into the container for live development, you'll need to temporarily modify `docker-compose.yml`. Change the `app` service to use the `build` directive and add a volume mount for the `src` directory:
+
+    ```yaml
+    services:
+      app:
+        build:
+          context: .
+          dockerfile: docker/php/Dockerfile
+        container_name: parceltrack_app
+        restart: unless-stopped
+        ports:
+          - "8080:80" # Map host port 8080 to container port 80
+        volumes:
+          - parceltrack_data:/opt/parceltrack/data # Persistent volume for package data
+          - .:/opt/parceltrack # Mount the entire local project directory for development
+        env_file:
+          - .env
+    ```
+
+4.  **Build and run the containers:**
+    ```bash
+    docker-compose up --build -d
+    ```
+    This will build the image locally and run the containers with your local source code mounted, allowing for real-time changes during development.
+
 ---
 
 We look forward to your contributions!

@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
+    image: ghcr.io/crazyhenk44/parceltrack:master
     container_name: parceltrack_app
     restart: unless-stopped
     ports:

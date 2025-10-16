@@ -20,22 +20,25 @@ You can run ParcelTrack using Docker.
 
 ### Docker Setup (Recommended)
 
-1.  **Clone the repository:**
+To get ParcelTrack up and running quickly using the pre-built Docker image, follow these steps. For local development or if you need to build the Docker image yourself, please refer to the [Local Development Setup](developer/CONTRIBUTING.md#local-development-setup) section in `developer/CONTRIBUTING.md`.
+
+1.  **Download essential files:**
+    Download `docker-compose.yml` and `.env.example` from the GitHub repository:
+    *   [`docker-compose.yml`](https://github.com/CrazyHenk44/parcelTrack/blob/master/docker-compose.yml)
+    *   [`.env.example`](https://github.com/CrazyHenk44/parcelTrack/blob/master/.env.example)
+    Place these files in a new directory on your system.
+
+2.  **Pull the latest pre-built Docker image:**
     ```bash
-    git clone https://github.com/CrazyHenk44/parcel-track.git
-    cd parcel-track
+    docker pull ghcr.io/crazyhenk44/parceltrack:master
     ```
 
-2.  **Create an environment file:**
-    Copy the example environment file and customize it with your settings.
-    ```bash
-    cp .env.example .env
-    ```
-    Now, edit the `.env` file. To use Ship24, you must add your API key.
+3.  **Create an environment file:**
+    Rename `.env.example` to `.env` and customize it with your settings. To use Ship24, you must add your API key.
 
-3.  **Build and run the containers:**
+4.  **Run the containers:**
     ```bash
-    docker-compose up --build -d
+    docker-compose up -d
     ```
 
 ### ⚙️ Configuration
@@ -56,11 +59,11 @@ The application is configured via environment variables. Create a `.env` file in
 
 ## 🔄 Usage
 
-The web interface will be available at `http://localhost:8080` (or the port you configured in your `.env` file).
+The web interface will be available at `http://localhost:8080` (or the port you configured in your `docker-compose.yml` file).
 
 ### Automated Tracking
 
-The Docker setup includes a cron service that automatically checks for package updates every 5 minutes. If a status changes, it will send a notification to the configured email address. Delivered packages will be automatically moved to an inactive state.
+The Docker setup includes a service that automatically checks for package updates every 5 minutes. If a status changes, it will send a notification to the configured email address. Delivered packages will be automatically moved to an inactive state.
 
 ## 📄 License
 
