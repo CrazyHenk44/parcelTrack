@@ -17,7 +17,7 @@ We welcome contributions in many forms, from bug reports and feature requests to
 5.  **Run the tests** to make sure you haven't introduced any regressions.
 6.  **Commit your changes** with a clear and descriptive commit message.
 7.  **Push your branch** to your fork.
-8.  **Submit a Pull Request** to the `main` branch of the `CrazyHenk44/parcel-track` repository. Please provide a clear description of the problem and your solution.
+8.  **Submit a Pull Request** to the `master` branch of the `CrazyHenk44/parcel-track` repository. Please provide a clear description of the problem and your solution.
 
 ## Coding Standards
 
@@ -36,7 +36,7 @@ Before submitting a pull request, please run the full test suite to ensure your 
 vendor/bin/phpunit tests
 ```
 
-If your changes alter the API output in an expected way (e.g., adding a new field), you may need to update the test data snapshots located in the `tests/data/` directory.
+It is also run automatically with the docker build.
 
 ## Development Tools
 
@@ -50,10 +50,7 @@ You can run it inside the running `app` container:
 docker-compose exec app python3 /opt/parceltrack/developer/status.py
 ```
 
-From the interactive list, you can:
-*   Navigate with arrow keys.
-*   Press `Enter` to see detailed event history.
-*   From the detail view, press `j` to view the **raw JSON response** from the shipper's API. This is invaluable for understanding the data structure and debugging parsing issues.
+From the detail view, press `j` to view the **raw JSON response** from the shipper's API. This is invaluable for understanding the data structure and debugging parsing issues.
 
 ## Local Development Setup
 
@@ -72,30 +69,13 @@ If you are contributing to ParcelTrack and need to build the Docker image locall
     ```
     Now, edit the `.env` file. To use Ship24, you must add your API key.
 
-3.  **Modify `docker-compose.yml` for local development:**
-    To mount your local source code into the container for live development, you'll need to temporarily modify `docker-compose.yml`. Change the `app` service to use the `build` directive and add a volume mount for the `src` directory:
+3.  **Use `docker-compose-build.yml` for local development:**
+    To mount your local source code into the container for live development, you'll need to temporarily modify `docker-compose-build.yml`. Uncomment the line if you needed, then run:
 
-    ```yaml
-    services:
-      app:
-        build:
-          context: .
-          dockerfile: docker/php/Dockerfile
-        container_name: parceltrack_app
-        restart: unless-stopped
-        ports:
-          - "8080:80" # Map host port 8080 to container port 80
-        volumes:
-          - parceltrack_data:/opt/parceltrack/data # Persistent volume for package data
-          - .:/opt/parceltrack # Mount the entire local project directory for development
-        env_file:
-          - .env
-    ```
-
-4.  **Build and run the containers:**
     ```bash
-    docker-compose up --build -d
+    docker compose -f docker-compose-build.yml build
     ```
+
     This will build the image locally and run the containers with your local source code mounted, allowing for real-time changes during development.
 
 ---

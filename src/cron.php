@@ -34,11 +34,12 @@ foreach ($activeResults as $existingResult) {
 
     $shipperName = $existingResult->shipper;
     $postalCode = $existingResult->getPostalCode();
+    $country = $existingResult->getCountry();
 
     $shipper = $shipperFactory->create($shipperName);
 
     if ($shipper) {
-        $newResult = $shipper->fetch($trackingCode, $postalCode);
+        $newResult = $shipper->fetch($trackingCode, $postalCode, $country);
 
         if (!$newResult) {
             $logger->log("Failed to fetch new data for {$trackingCode}. Skipping.", Logger::ERROR);

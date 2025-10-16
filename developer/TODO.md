@@ -65,22 +65,6 @@ This list covers everything from documentation and security to code quality and 
     - [ ] **`refreshBtn`:** `location.reload()` is a blunt instrument. A more elegant solution would be to re-fetch data and update the UI without a full page reload.
     - [ ] **Theme Toggle:** The theme toggle logic is good, but ensure the icons (🌓, ☀️) are accessible.
 
-### 4. 📝 Documentation
-
-- [ ] **`README.md`:**
-    - [ ] Update with clear installation instructions (including Docker setup).
-    - [ ] Add usage examples for adding/tracking packages.
-    - [ ] Detail environment variables required (`.env.example`).
-    - [ ] Explain the cron job setup.
-    - [ ] Add a section on API endpoints and their usage.
-    - [ ] Include a "Contributing" section (referencing `CONTRIBUTING.md`).
-    - [ ] Add a "License" section.
-    - [ ] Add screenshots of the UI.
-- [ ] **`CONTRIBUTING.md`:** Ensure it's up-to-date and provides clear guidelines for contributions (code style, testing, pull request process).
-- [ ] **`GEMINI.md`:** Review and update to ensure it accurately reflects the current state of the project and any new features. Consider if it should be renamed to something more generic like `ARCHITECTURE.md` or `DESIGN.md` if it's a general technical overview.
-- [ ] **`VERSION` file:** Ensure it's updated with each release.
-- [ ] **Code Comments:** Add comprehensive PHPDoc blocks for all classes, methods, and properties in PHP files. Add JSDoc comments for JavaScript functions. Explain complex logic.
-- [ ] **Docker Documentation:** Add notes on how to build and run the Docker containers, and how to access logs.
 
 ### 5. 🔒 Security
 
@@ -92,7 +76,6 @@ This list covers everything from documentation and security to code quality and 
 
 ### 6. 🐳 Docker & Deployment
 
-- [ ] **Multi-stage Builds:** Implement multi-stage builds in `docker/php/Dockerfile` to reduce image size.
 - [ ] **Non-root User:** Configure the Docker container to run as a non-root user.
 - [ ] **Health Checks:** Add Docker health checks to `docker-compose.yml`.
 - [ ] **Production-ready Configuration:** Review `php.ini`, `nginx.conf`, and `supervisord.conf` for production best practices (e.g., error logging, resource limits).

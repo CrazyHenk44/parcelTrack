@@ -27,8 +27,7 @@ This section summarizes the current state of the application and key technical d
 
 ### Shipper Implementations
 
--   **`src/Shipper/DhlShipper.php`**: Implements the `ShipperInterface` for DHL, fetching and parsing data from their API.
--   **`src/Shipper/PostNLShipper.php`**: Implements the `ShipperInterface` for PostNL.
+-   **`src/Shipper/*`**: Implements the `ShipperInterface` per shipper.
 
 ### DHL Translation
 
@@ -40,8 +39,8 @@ A RESTful API that serves as the bridge between the frontend and the data storag
 
 -   **`GET`**: Retrieves all packages, formats them for display using shipper-specific `DisplayHelper` classes, and sends them to the frontend.
 -   **`POST`**: Adds a new package by fetching its initial data and saving it.
--   **`PUT`**: Updates a package's metadata (e.g., custom name, contact email, active/inactive status).
--   **`DELETE`**: Removes a package's data file.
+-   **`PUT`**: Updates a package's metadata (e.g., custom name, active/inactive status).
+-   **`DELETE`**: Removes a package.
 
 ### Web Interface (`web/`)
 
@@ -64,7 +63,7 @@ A modern, responsive single-page application for managing and viewing packages.
 
 The project uses PHPUnit for testing. The strategy is twofold:
 -   **Unit Tests** (`tests/*ShipperTest.php`): Each shipper has a dedicated test that mocks the HTTP response. It verifies that the raw API data is correctly parsed into a `TrackingResult` object.
--   **Integration Tests** (`tests/ApiIntegrationTest.php`): This test verifies the display logic. It takes the `TrackingResult` objects from the unit tests, mocks the `StorageService`, and executes the `api.php` GET logic to ensure the `DisplayHelper` classes format the data correctly for the frontend.
+-   **Integration Tests** (`tests/ApiIntegrationTest.php`): This test verifies the display logic. It takes the `TrackingResult` objects from the unit tests, mocks the `StorageService`, and ensures the `DisplayHelper` classes format the data correctly for the frontend.
 
 ### Environment & Commands
 
