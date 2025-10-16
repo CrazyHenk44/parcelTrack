@@ -32,6 +32,9 @@ COPY composer.json composer.lock ./
 # Copy the rest of the application source code
 COPY . .
 
+# Ensure the translations directory exists for the test suite
+RUN mkdir -p translations
+
 # Update dependencies, install them (including dev), and run the test suite
 RUN composer update --optimize-autoloader && vendor/bin/phpunit tests
 
