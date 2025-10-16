@@ -1,0 +1,4 @@
+# Run the cron.php script every 5 minutes
+# The output (stdout and stderr) is redirected to a log file within the container's log volume.
+# The `php` binary is in the system's PATH. The script is located in the WORKDIR.
+*/5 * * * * php /opt/parceltrack/src/cron.php

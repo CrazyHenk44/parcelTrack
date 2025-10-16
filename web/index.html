@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParcelTrack</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header>
+        <h1>ParcelTrack</h1>
+        <button id="refresh-btn" title="Pakketten vernieuwen">↻</button>
+        <button id="theme-toggle-btn" title="Thema wisselen">🌓</button>
+        <button id="add-package-btn">+</button>
+    </header>
+    <main class="container">
+        <div id="package-list-container">
+            <div id="package-list"></div>
+        </div>
+        <div id="detail-container">
+            <div id="detail-placeholder">
+                <p>Selecteer een pakket om de details te bekijken.</p>
+            </div>
+            <div id="detail-content" class="hidden">
+                <div id="detail-header">
+                    <span id="back-to-list-btn">&larr;</span>
+                    <h3 id="detail-title"></h3>
+                    <button id="toggle-details-btn">Details</button>
+                </div>
+                <div class="detail-panels">
+                    <div id="event-list-container">
+                        <h3>Geschiedenis</h3>
+                        <div id="event-list" class="scrollable-panel">
+                        </div>
+                        <div id="management-section" class="detail-actions hidden">
+                            <div class="management-item"><button id="status-toggle-btn"></button></div>
+                            <div class="management-item"><span id="notification-email"></span></div>
+                        </div>
+                    </div>
+                    <div id="detail-summary-container">
+                        <h3>Details</h3>
+                        <div id="detail-summary" class="scrollable-panel">
+                        </div>
+                        <div id="detail-actions" class="detail-actions">
+                            <a id="detail-weblink" href="#" target="_blank" class="weblink detail-footer-item" title="Bekijk op website van vervoerder"><span role="img" aria-label="globe">🌐</span></a>
+                            <span id="detail-tracking-code" class="detail-footer-item"></span>
+                            <button id="detail-delete-btn" class="delete-btn detail-footer-item" title="Pakket verwijderen"><span role="img" aria-label="trash can">🗑️</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Package Modal -->
+    <div id="add-package-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Nieuw pakket toevoegen</h2>
+            <form id="add-package-form">
+                <div class="form-group">
+                    <label for="shipper">Vervoerder:</label>
+                    <select id="shipper" name="shipper" required>
+                        <option value="DHL">DHL</option>
+                        <option value="PostNL">PostNL</option>
+                        <option value="Ship24">Ship24</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="trackingCode">Trackingcode:</label>
+                    <input type="text" id="trackingCode" name="trackingCode" required>
+                </div>
+                <div class="form-group">
+                    <label for="postalCode">Postcode:</label>
+                    <input type="text" id="postalCode" name="postalCode" required>
+                </div>
+                <div class="form-group">
+                    <label for="country">Land:</label>
+                    <input type="text" id="country" name="country" value="NL" required>
+                </div>
+                <div class="form-group">
+                    <label for="customName">Omschrijving (optioneel):</label>
+                    <input type="text" id="customName" name="customName">
+                </div>
+                <div class="form-group">
+                    <label for="contactEmail">Notificatie e-mail (optioneel):</label>
+                    <input type="email" id="contactEmail" name="contactEmail" placeholder="Standaard e-mailadres wordt gebruikt">
+                </div>
+                <button type="submit">Pakket toevoegen</button>
+            </form>
+            <div id="form-message" class="hidden"></div>
+        </div>
+    </div>
+
+    <footer>
+        <span id="version-info"></span>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

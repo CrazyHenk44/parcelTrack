@@ -1,0 +1,15 @@
+# Composer
+/vendor/
+
+# Data & Caches
+# The data and translations directories should be created by the application.
+# Add a .gitkeep file inside these directories if you want to commit the empty folder structure.
+/data/
+/translations/
+
+# Logs
+*.log
+
+# Environment
+# Never commit your local environment variables.
+.env

@@ -1,0 +1,12 @@
+{
+    "Sender": { "type": "person", "path": "origin" },
+    "Receiver": { "type": "person", "path": "receiver" },
+    "Destination": { "type": "person", "path": "destination" },
+    "Shipper Name": "shipper.name",
+    "Type": "destination.type",
+    "Map": { "path": "destination", "type": "map_link" },
+    "Opening Hours": { "type": "opening_hours_dhl", "path": "destination.openingTimes" },
+    "Closed": { "type": "closure_periods", "path": "destination.closurePeriods" },
+    "Dimensions": { "type": "dimensions_dhl", "path": "length" },
+    "Weight": { "type": "weight_dhl", "path": "weight" }
+}

@@ -1,0 +1,11 @@
+# Git and VS Code specific
+.git
+.gitignore
+.vscode/
+
+# Docker-related files that shouldn't be in the image itself
+docker-compose.yml*
+
+# Application data, logs, and tests
+# These are handled by volumes or are not needed in the final image.
+data/
