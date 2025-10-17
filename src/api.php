@@ -57,7 +57,7 @@ switch ($requestMethod) {
         }
 
         try {
-            $result = $shipper->fetch($trackingCode, $postalCode, $country); // Pass country to fetch
+            $result = $shipper->fetch($trackingCode, $postalCode, $country);
 
             if ($result) {
                 // Set metadata from form input

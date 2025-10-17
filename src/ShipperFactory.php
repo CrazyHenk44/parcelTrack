@@ -5,6 +5,7 @@ namespace ParcelTrack;
 use ParcelTrack\Shipper\DhlShipper;
 use ParcelTrack\Shipper\PostNLShipper;
 use ParcelTrack\Shipper\Ship24Shipper;
+use ParcelTrack\Shipper\YunExpressShipper;
 use ParcelTrack\ShipperConstants; // Import ShipperConstants
 
 /**
@@ -37,6 +38,8 @@ class ShipperFactory
                     return new Ship24Shipper($this->logger, $this->config->ship24ApiKey);
                 }
                 return null;
+            case ShipperConstants::YUNEXPRESS:
+                return new YunExpressShipper();
             default:
                 return null;
         }
@@ -49,8 +52,8 @@ class ShipperFactory
 
     public function createDisplayHelper(TrackingResult $package): ?DisplayHelperInterface
     {
-        $shipperName = $package->shipper; // Use raw shipper name from package
-        $config = $this->shipperConfigs[$shipperName] ?? [];
+        $shipperName = ($package->shipper); // Use raw shipper name from package
+        $config = $this->shipperConfigs[strtoupper($shipperName)] ?? [];
 
         switch ($shipperName) {
             case ShipperConstants::DHL:
@@ -59,6 +62,8 @@ class ShipperFactory
                 return new PostNLDisplayHelper($package, $config, $this->logger);
             case ShipperConstants::SHIP24:
                 return new Ship24DisplayHelper($package, $config, $this->logger);
+            case ShipperConstants::YUNEXPRESS:
+                return new YunExpressDisplayHelper($package, $config, $this->logger);
             default:
                 return null;
         }
