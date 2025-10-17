@@ -19,14 +19,13 @@ class Ship24DisplayHelperTest extends TestCase
         $this->logger = new Logger();
     }
 
-    private function createMockTrackingResult(string $statusMilestone): TrackingResult
+    private function createMockTrackingResult(string $packageStatusValue): TrackingResult
     {
         $rawResponseData = [
             "data" => [
                 "trackings" => [
                     [
                         "shipment" => [
-                            "statusMilestone" => $statusMilestone,
                             "originCountryCode" => "US",
                             "destinationCountryCode" => "NL",
                         ],
@@ -41,56 +40,49 @@ class Ship24DisplayHelperTest extends TestCase
             ]
         ];
 
-        $metadata = new PackageMetadata();
-        $metadata->status = PackageStatus::Active;
-        $metadata->contactEmail = 'test@example.com';
-        $metadata->customName = 'Test Package';
-
         $trackingResult = new TrackingResult(
-            'Ship24',
-            'TESTCODE123',
-            '1234AB',
-            'Delivered', // Revert to fixed packageStatus
-            '2025-10-17',
-            json_encode($rawResponseData),
-            [],
-            $metadata
+            'TESTCODE123', // trackingCode
+            'Ship24',      // shipper
+            Ship24DisplayHelper::translateStatusMilestone($packageStatusValue), // packageStatus
+            '1234AB',      // postalCode
+            'NL',          // country
+            json_encode($rawResponseData)
         );
+
+        $trackingResult->metadata->status = PackageStatus::Active;
+        $trackingResult->metadata->contactEmail = 'test@example.com';
+        $trackingResult->metadata->customName = 'Test Package';
 
         return $trackingResult;
     }
 
-    public function testStatusMilestoneTranslationDelivered(): void
+    public function testPackageStatusTranslationDelivered(): void
     {
         $trackingResult = $this->createMockTrackingResult("delivered");
         $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
         $displayData = $displayHelper->getDisplayData();
 
-        $this->assertArrayHasKey('formattedDetails', $displayData);
-        $this->assertArrayHasKey('Status Milestone', $displayData['formattedDetails']);
-        $this->assertEquals('Bezorgd', $displayData['formattedDetails']['Status Milestone']);
+        $this->assertArrayHasKey('packageStatus', $displayData);
+        $this->assertEquals('Bezorgd', $displayData['packageStatus']);
     }
 
-    public function testStatusMilestoneTranslationInTransit(): void
+    public function testPackageStatusTranslationInTransit(): void
     {
         $trackingResult = $this->createMockTrackingResult("in_transit");
         $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
         $displayData = $displayHelper->getDisplayData();
 
-        $this->assertArrayHasKey('formattedDetails', $displayData);
-        $this->assertArrayHasKey('Status Milestone', $displayData['formattedDetails']);
-        $this->assertEquals('Onderweg', $displayData['formattedDetails']['Status Milestone']);
+        $this->assertArrayHasKey('packageStatus', $displayData);
+        $this->assertEquals('Onderweg', $displayData['packageStatus']);
     }
 
-    public function testStatusMilestoneNoTranslation(): void
+    public function testPackageStatusNoTranslation(): void
     {
         $trackingResult = $this->createMockTrackingResult("unknown_status");
         $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
         $displayData = $displayHelper->getDisplayData();
 
-        $this->assertArrayHasKey('formattedDetails', $displayData);
-        $this->assertArrayHasKey('Status Milestone', $displayData['formattedDetails']);
-        $this->assertEquals('unknown_status', $displayData['formattedDetails']['Status Milestone']);
+        $this->assertArrayHasKey('packageStatus', $displayData);
+        $this->assertEquals('unknown_status', $displayData['packageStatus']);
     }
-
 }

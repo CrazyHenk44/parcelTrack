@@ -91,9 +91,6 @@ class Ship24DisplayHelper implements DisplayHelperInterface
             }
 
             if ($value) {
-                if ($label === "Status Milestone" && isset(self::$statusMilestoneTranslations[$value])) {
-                    $value = self::$statusMilestoneTranslations[$value];
-                }
                 $formatted[$label] = $value;
             }
         }
