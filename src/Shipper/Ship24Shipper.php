@@ -5,6 +5,7 @@ namespace ParcelTrack\Shipper;
 use ParcelTrack\Event;
 use ParcelTrack\Logger;
 use ParcelTrack\DateHelper;
+use ParcelTrack\Ship24DisplayHelper; // Import Ship24DisplayHelper
 use ParcelTrack\ShipperInterface;
 use ParcelTrack\TrackingResult;
 use ParcelTrack\ShipperConstants; // Import ShipperConstants
@@ -81,7 +82,7 @@ class Ship24Shipper implements ShipperInterface
         $result = new TrackingResult(
             $trackingCode,
             ShipperConstants::SHIP24, // Use constant for shipper name
-            $latestStatus,
+            Ship24DisplayHelper::translateStatusMilestone($shipment["statusMilestone"]), // Translate statusMilestone
             $postalCode,
             $country,
             $response
@@ -89,14 +90,16 @@ class Ship24Shipper implements ShipperInterface
 
         $result->events = $unifiedEvents;
 
-        // Determine delivery status and ETA
+        // Determine delivery status and packageStatusDate
         $deliveredDatetime = $statistics['timestamps']['deliveredDatetime'] ?? null;
-        $result->isDelivered = !empty($deliveredDatetime);
+        $result->isCompleted = !empty($deliveredDatetime);
 
-        if ($result->isDelivered) {
-            $result->eta = "Bezorgd op: " . DateHelper::formatDutchDate($deliveredDatetime);
+        if ($result->isCompleted) { // If completed, it means it's delivered
+            $result->packageStatus = "Bezorgd";
+            $result->packageStatusDate = $deliveredDatetime;
         } elseif (!empty($shipment['delivery']['estimatedDeliveryDate'])) {
-            $result->eta = "Geplande bezorging: " . $shipment['delivery']['estimatedDeliveryDate'];
+            $result->packageStatus = "Geplande bezorging: " . $shipment['delivery']['estimatedDeliveryDate'];
+            $result->packageStatusDate = $shipment['delivery']['estimatedDeliveryDate'];
         }
 
         return $result;

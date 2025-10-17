@@ -74,23 +74,25 @@ class DhlShipper implements ShipperInterface
 
         $result = new TrackingResult(
             $trackingCode,
-            ShipperConstants::DHL, // Use constant for shipper name
-            $latestStatus,
+            ShipperConstants::DHL,
+            $latestStatus, // Use the determined latest status
             $postalCode,
             $country,
-            $response
+            $response // Use $response instead of $apiResponse
         );
-        $result->sender = (object)($shipment['shipper'] ?? []);
-        $result->receiver = (object)($shipment['receiver'] ?? []);
         $result->events = $unifiedEvents;
 
-        // Determine delivery status and ETA
-        $result->isDelivered = isset($shipment['deliveredAt']) && $shipment['deliveredAt'];
-        if ($result->isDelivered) {
-            $result->eta = "Bezorgd op: " . DateHelper::formatDutchDate($shipment['deliveredAt']);
+        // Determine delivery status and packageStatusDate
+        $result->isCompleted = (isset($shipment['deliveredAt']) && $shipment['deliveredAt']);
+        if ($result->isCompleted && isset($shipment['deliveredAt'])) { // If completed, it means it's delivered
+            $result->packageStatus = "Bezorgd";
+            $result->packageStatusDate = $shipment['deliveredAt'];
         } elseif (isset($shipment['plannedDeliveryTimeframe'])) {
             // This field is often a string like "2024-01-01T10:00:00/2024-01-01T12:00:00"
-            $result->eta = "Geplande bezorging: " . $shipment['plannedDeliveryTimeframe'];
+            $result->packageStatus = "Geplande bezorging: " . $shipment['plannedDeliveryTimeframe'];
+            // Attempt to extract a date from plannedDeliveryTimeframe if possible, otherwise store the full string
+            $dateParts = explode('/', $shipment['plannedDeliveryTimeframe']);
+            $result->packageStatusDate = $dateParts[0]; // Take the start date as the status date
         }
 
         return $result;

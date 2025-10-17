@@ -52,7 +52,8 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
             'shipper' => $this->package->shipper,
             'trackingCode' => $this->package->trackingCode,
             'postalCode' => $this->package->getPostalCode(),
-            'status' => $this->package->status,
+            'packageStatus' => $this->package->packageStatus,
+            'packageStatusDate' => $this->package->packageStatusDate,
             'customName' => $this->package->metadata->customName,
             'events' => $this->package->events,
             'metadata' => [

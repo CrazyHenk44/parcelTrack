@@ -15,20 +15,25 @@ $logger = new Logger($config->logLevel);
 $storage = new StorageService();
 
 // Parse command-line options
-$options = getopt("f", ["force-mail"]);
-$forceMail = isset($options['f']) || isset($options['force-mail']);
+$options = getopt("f", ["force", "no-mail"]);
+$force = isset($options['f']) || isset($options['force']);
+$noMail = isset($options['no-mail']);
 
 $allResults = $storage->getAll();
-$activeResults = array_filter($allResults, function ($package) {
-    // Default to active if metadata or status is somehow missing for old packages
-    return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
-});
+$packagesToProcess = $allResults;
 
-$logger->log('Found ' . count($allResults) . ' total packages. Processing ' . count($activeResults) . ' active packages.', Logger::INFO);
+if (!$force) {
+    $packagesToProcess = array_filter($allResults, function ($package) {
+        // Default to active if metadata or status is somehow missing for old packages
+        return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
+    });
+}
+
+$logger->log('Found ' . count($allResults) . ' total packages. Processing ' . count($packagesToProcess) . ' packages.', Logger::INFO);
 
 $shipperFactory = new ShipperFactory($logger, $config);
 
-foreach ($activeResults as $existingResult) {
+foreach ($packagesToProcess as $existingResult) {
     $trackingCode = $existingResult->trackingCode;
     $logger->log('Updating tracking code: ' . $trackingCode, Logger::INFO);
 
@@ -51,18 +56,18 @@ foreach ($activeResults as $existingResult) {
 
         // Always check if the package is delivered and update its active/inactive status.
         // This should happen even if the text status hasn't changed.
-        $needsSave = false;
-        if ($newResult->isDelivered && $newResult->metadata->status === PackageStatus::Active) {
+        $needsSave = $force; // If force is enabled, always save processed packages
+        if ($newResult->isCompleted && $newResult->metadata->status === PackageStatus::Active) {
             $newResult->metadata->status = PackageStatus::Inactive;
             $logger->log("Package {$trackingCode} marked as delivered. Set status to INACTIVE.", Logger::INFO);
-            $needsSave = true;
+            $needsSave = true; // Also save if status changes to inactive
         }
 
-        $oldStatus = $existingResult ? $existingResult->status : 'N/A (New Package)';
-        $statusChanged = ($existingResult === null) || ($newResult->status !== $existingResult->status);
+        $oldStatus = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
+        $statusChanged = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
 
-        // Send an email if the status text has changed or if mailing is forced.
-        if ($statusChanged || $forceMail) {
+        // Send an email if the status text has changed or if mailing is forced, and no-mail option is not set.
+        if (($statusChanged || $force) && !$noMail) {
             if ($statusChanged) {
                 $logger->log("Status changed for {$trackingCode}: {$oldStatus} -> {$newResult->status}", Logger::INFO);
             } else {
@@ -162,7 +167,7 @@ foreach ($activeResults as $existingResult) {
 
             $needsSave = true; // Mark for saving after sending email
         } else {
-            $logger->log("Status for {$trackingCode} remains {$newResult->status}", Logger::DEBUG);
+            $logger->log("Status for {$trackingCode} remains {$newResult->packageStatus}", Logger::DEBUG);
         }
 
         if ($needsSave) {

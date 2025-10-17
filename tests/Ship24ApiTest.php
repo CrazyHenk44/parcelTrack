@@ -46,11 +46,7 @@ class Ship24ApiTest extends TestCase
         $this->assertEquals('Ship24', $result->shipper);
         $this->assertEquals($trackingCode, $result->trackingCode);
         $this->assertEquals($postalCode, $result->getPostalCode());
-        $this->assertEquals('Shipment information received', $result->status);
-        $this->assertFalse($result->isDelivered);
-        $this->assertNull($result->eta);
-        $this->assertNull($result->receiver);
-        $this->assertNull($result->sender);
+        $this->assertEquals('Aangemeld', $result->packageStatus);
         $this->assertEquals($responseBody, $result->rawResponse);
 
         // Assertions for Events

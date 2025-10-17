@@ -45,7 +45,8 @@ class DhlDisplayHelper implements DisplayHelperInterface
             'shipper' => $this->package->shipper,
             'trackingCode' => $this->package->trackingCode,
             'postalCode' => $this->package->getPostalCode(),
-            'status' => $this->package->status,
+            'packageStatus' => $this->package->packageStatus,
+            'packageStatusDate' => $this->package->packageStatusDate,
             'customName' => $this->package->metadata->customName,
             'events' => $this->package->events,
             'metadata' => [
@@ -80,29 +81,6 @@ class DhlDisplayHelper implements DisplayHelperInterface
             'Dimensions' => 'Afmetingen',
             'Weight' => 'Gewicht',
         ];
-
-        // Handle special "STATUS" box
-        $eta = null;
-        foreach (($this->details->events ?? []) as $event) {
-            if (isset($event->status) && $event->status === 'INFORMATION_ON_DELIVERY_TRANSMITTED' && isset($event->plannedDeliveryTimeframe)) {
-                $eta = $event->plannedDeliveryTimeframe;
-                break;
-            }
-        }
-
-        if ($eta) {
-            $formatted['Status'] = sprintf('<div class="detail-box eta"><div class="detail-box-label">Geplande bezorging</div><div class="detail-box-value">%s</div></div>', $eta);
-        }
-
-        // Handle special "Delivered" box
-        if (isset($this->details->deliveredAt) && $this->details->deliveredAt) {
-            try {
-                $deliveryDate = new DateTime($this->details->deliveredAt);
-                $formatted['Status'] = "<div class=\"delivered-box\"><h4>Bezorgd</h4><p>" . $this->formatDutchDate($deliveryDate) . "</p></div>";
-            } catch (\Exception $e) {
-                $this->logger->log("Error formatting delivered date: " . $e->getMessage(), Logger::ERROR);
-            }
-        }
 
         foreach ($this->config as $label => $spec) {
             // Skip special cases already handled

@@ -81,14 +81,16 @@ class YunExpressShipper implements ShipperInterface
         }
 
         $latestStatus = 'Unknown';
+        $latestStatusDate = null;
         if (!empty($events)) {
             $latestStatus = $events[count($events)-1]->description;
+            $latestStatusDate = $events[count($events)-1]->timestamp;
         }
 
         $tr = new TrackingResult(
             $trackingCode,
             ShipperConstants::YUNEXPRESS,
-            $latestStatus,
+            $data['ResultList'][0]['TrackData']['TrackStatus'],
             $postalCode,
             $country,
             $apiResponse,

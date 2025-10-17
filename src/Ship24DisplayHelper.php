@@ -12,10 +12,21 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     private array $config;
     private ?object $details;
 
+    private static array $statusMilestoneTranslations = [
+        "delivered" => "Bezorgd",
+        "in_transit" => "Onderweg",
+        "info_received" => "Aangemeld"
+    ];
+
+    public static function translateStatusMilestone(string $status): string
+    {
+        $lowerCaseStatus = strtolower($status);
+        return self::$statusMilestoneTranslations[$lowerCaseStatus] ?? $status;
+    }
+
     private static array $displayConfig = [
         "Origin" => "shipment.originCountryCode",
         "Destination" => "shipment.destinationCountryCode",
-        "Status Milestone" => "shipment.statusMilestone",
         "Info Received" => ["path" => "statistics.timestamps.infoReceivedDatetime", "type" => "date"],
         "In Transit" => ["path" => "statistics.timestamps.inTransitDatetime", "type" => "date"],
         "Out for Delivery" => ["path" => "statistics.timestamps.outForDeliveryDatetime", "type" => "date"],
@@ -41,7 +52,8 @@ class Ship24DisplayHelper implements DisplayHelperInterface
             'shipper' => $this->package->shipper,
             'trackingCode' => $this->package->trackingCode,
             'postalCode' => $this->package->getPostalCode(),
-            'status' => $this->package->status,
+            'packageStatus' => $this->package->packageStatus,
+            'packageStatusDate' => $this->package->packageStatusDate,
             'customName' => $this->package->metadata->customName,
             'events' => $this->package->events,
             'metadata' => [
@@ -67,29 +79,6 @@ class Ship24DisplayHelper implements DisplayHelperInterface
             return $formatted;
         }
 
-        // Handle special "Delivered" box
-        if ($this->package->isDelivered) {
-            $deliveryTimestamp = $this->details->statistics->timestamps->deliveredDatetime ?? null;
-            if ($deliveryTimestamp) {
-                try {
-                    $deliveryDate = new \DateTime($deliveryTimestamp);
-                    $formatted['Status'] = "<div class=\"delivered-box\"><h4>Bezorgd</h4><p>" . $this->formatDutchDate($deliveryDate) . "</p></div>";
-                } catch (\Exception $e) {
-                    $formatted['Status'] = "<div class=\"delivered-box\"><h4>Bezorgd</h4><p>" . htmlspecialchars($this->package->eta) . "</p></div>";
-                }
-            } else {
-                // Fallback if deliveredDatetime is not available
-                $formatted['Status'] = "<div class=\"delivered-box\"><h4>Bezorgd</h4><p>" . htmlspecialchars($this->package->eta) . "</p></div>";
-            }
-        }
-        // Handle special "STATUS" box for not-yet-delivered packages
-        elseif ($this->package->eta) {
-            $formatted['STATUS'] = sprintf(
-                '<div class="detail-box eta"><div class="detail-box-label">Verwachte bezorging</div><div class="detail-box-value">%s</div></div>',
-                htmlspecialchars($this->package->eta)
-            );
-        }
-
         foreach ($this->config as $label => $spec) {
             $value = null;
             if (is_string($spec)) {
@@ -102,6 +91,9 @@ class Ship24DisplayHelper implements DisplayHelperInterface
             }
 
             if ($value) {
+                if ($label === "Status Milestone" && isset(self::$statusMilestoneTranslations[$value])) {
+                    $value = self::$statusMilestoneTranslations[$value];
+                }
                 $formatted[$label] = $value;
             }
         }

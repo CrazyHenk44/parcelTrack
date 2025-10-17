@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="editable-name" data-shipper="${pkg.shipper}" data-tracking-code="${pkg.trackingCode}">${displayName}</span>
                     ${getShipperTextElement(pkg.shipper)}
                 </div>
-                <div class="package-item-status">${pkg.status}</div>
+                <div class="package-item-status">${pkg.packageStatus}</div>
             `;
 
             const editIcon = item.querySelector('.edit-icon');
@@ -235,6 +235,21 @@ document.addEventListener('DOMContentLoaded', () => {
             detailTrackingCodeEl.textContent = '';
         }
 
+        // Display packageStatus and packageStatusDate in a box at the top of the event list
+        if (pkg.packageStatus) {
+            const statusBox = document.createElement('div');
+            statusBox.style.textAlign = 'center'; // Center the status box
+
+            let statusHtml = '';
+            statusBox.className = 'eta-prominent';
+            statusHtml = `<h4>${pkg.packageStatus}</h4>`;
+            if (pkg.packageStatusDate) {
+                statusHtml += `<p>${formatDutchDate(pkg.packageStatusDate)}</p>`;
+            }
+            statusBox.innerHTML = statusHtml;
+            eventListEl.prepend(statusBox);
+        }
+
         detailDeleteBtn.innerHTML = '<span role="img" aria-label="trash can">🗑️</span>';
 
         if (pkg.trackUrl && pkg.trackUrl !== '#') {
@@ -262,17 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const [label, value] of Object.entries(pkg.formattedDetails)) {
                 const item = document.createElement('div');
                 item.className = 'detail-field';
-                if (label === 'Status') { 
-                    const etaItem = document.createElement('div');
-                    etaItem.className = 'event-item eta-event-item';
-                    etaItem.style.textAlign = 'center'; // Center the ETA block
-                    etaItem.innerHTML = value; 
-                    eventListEl.prepend(etaItem);
-                }
-                else {
-                    item.innerHTML = `<div class="detail-field-label">${label}:</div><div class="detail-field-value">${value}</div>`;
-                    detailSummaryEl.appendChild(item);
-                }
+                // The main package status is now handled by the dynamically created status box.
+                // Any 'Status' label in formattedDetails is likely a specific status milestone, not the main package status.
+                // So we display it as a regular detail field.
+                item.innerHTML = `<div class="detail-field-label">${label}:</div><div class="detail-field-value">${value}</div>`;
+                detailSummaryEl.appendChild(item);
             }
         }
 

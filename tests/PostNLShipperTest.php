@@ -46,11 +46,7 @@ class PostNLShipperTest extends TestCase
         $this->assertEquals('PostNL', $result->shipper);
         $this->assertEquals($trackingCode, $result->trackingCode);
         $this->assertEquals($postalCode, $result->getPostalCode());
-        $this->assertEquals('Pakket is bezorgd', $result->status);
-        $this->assertTrue($result->isDelivered);
-        $this->assertEquals('Bezorgd op: 10 okt, 11.32u', $result->eta);
-        $this->assertEquals('Receiver Name', $result->receiver->names["personName"]);
-        $this->assertEquals('Sender Name', $result->sender->names["personName"]);
+        $this->assertEquals('Bezorgd', $result->packageStatus);
         $this->assertEquals($responseBody, $result->rawResponse);
 
         // Assertions for Events

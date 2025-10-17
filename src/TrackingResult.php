@@ -6,16 +6,14 @@ class TrackingResult
 {
     /** @var Event[] */
     public array $events = [];
-    public ?\stdClass $sender = null;
-    public ?\stdClass $receiver = null;
-    public bool $isDelivered = false;
-    public ?string $eta = null;
+    public bool $isCompleted = false;
+    public ?string $packageStatusDate = null;
     public ?PackageMetadata $metadata = null;
 
     public function __construct(
         public string $trackingCode,
         public string $shipper,
-        public string $status,
+        public string $packageStatus,
         public ?string $postalCode,
         public ?string $country, // Add country property
         public string $rawResponse
@@ -47,12 +45,12 @@ class TrackingResult
     {
         $this->trackingCode = $data['trackingCode'];
         $this->shipper = $data['shipper'];
-        $this->status = $data['status'];
+        $this->packageStatus = $data['packageStatus'];
+        $this->packageStatusDate = $data['packageStatusDate'] ?? null;
         $this->postalCode = $data['postalCode'];
         $this->country = $data['country'] ?? 'NL'; // Default to NL for existing packages
         $this->rawResponse = $data['rawResponse'];
-        $this->sender = $data['sender'];
-        $this->receiver = $data['receiver'];
+        $this->isCompleted = $data['isCompleted'] ?? false;
 
         $this->events = array_map(function ($eventData) {
             if ($eventData instanceof Event) {

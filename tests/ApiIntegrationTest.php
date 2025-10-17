@@ -127,7 +127,7 @@ class ApiIntegrationTest extends TestCase
         $this->assertEquals('DHL', $dhlPackage['shipper']);
         $this->assertEquals('DHL Test Package', $dhlPackage['customName']);
         $this->assertEquals('active', $dhlPackage['metadata']['status']);
-        $this->assertEquals('Aangemeld bij netwerk', $dhlPackage['status']);
+        $this->assertEquals('Geplande bezorging: 2025-10-09T10:00:00/2025-10-09T14:00:00', $dhlPackage['packageStatus']);
         $this->assertEquals(
             'Receiver Name, Receiver Street 2, 5678CD, Receiver City',
             $dhlPackage['formattedDetails']['Ontvanger']
@@ -137,17 +137,13 @@ class ApiIntegrationTest extends TestCase
         $this->assertEquals('Ship24', $ship24Package['shipper']);
         $this->assertEquals('Ship24 Test Package', $ship24Package['customName']);
         $this->assertEquals('active', $ship24Package['metadata']['status']);
-        $this->assertEquals('Shipment information received', $ship24Package['status']);
+        $this->assertEquals('Aangemeld', $ship24Package['packageStatus']);
 
         // --- Test PostNL Package Formatting ---
         $this->assertEquals('PostNL', $postnlPackage['shipper']);
         $this->assertEquals('PostNL Test Package', $postnlPackage['customName']);
         $this->assertEquals('inactive', $postnlPackage['metadata']['status']);
-        $this->assertEquals('Pakket is bezorgd', $postnlPackage['status']);
+        $this->assertEquals('Bezorgd', $postnlPackage['packageStatus']);
         $this->assertEquals(11, count($postnlPackage['events']));
-        $this->assertStringContainsString(
-            '<h4>Bezorgd</h4>',
-            $postnlPackage['formattedDetails']['Status']
-        );
     }
 }

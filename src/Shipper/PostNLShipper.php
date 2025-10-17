@@ -71,23 +71,23 @@ class PostNLShipper implements ShipperInterface
         $result = new TrackingResult(
             $trackingCode,
             ShipperConstants::POSTNL, // Use constant for shipper name
-            $colli['statusPhase']['message'] ?? 'Unknown',
+            $colli['statusPhase']['message'] ?? 'Unknown', // This will be packageStatus
             $postalCode,
             $country,
             $response
         );
-        $result->sender = (object)($colli['sender'] ?? []);
-        $result->receiver = (object)($colli['recipient'] ?? []);
         $result->events = $unifiedEvents;
 
-        // Determine delivery status and ETA
-        $result->isDelivered = $colli['isDelivered'] ?? false;
-        if ($result->isDelivered && isset($colli['deliveryDate'])) {
-            $result->eta = "Bezorgd op: " . DateHelper::formatDutchDate($colli['deliveryDate']);
+        // Determine delivery status and packageStatusDate
+        $result->isCompleted = ($colli['isDelivered'] ?? false);
+        if ($result->isCompleted && isset($colli['deliveryDate'])) { // If completed, it means it's delivered
+            $result->packageStatus = "Bezorgd";
+            $result->packageStatusDate = $colli['deliveryDate'];
         } elseif (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
             $start = new \DateTime($colli['eta']['start']);
             $end = new \DateTime($colli['eta']['end']);
-            $result->eta = sprintf("Verwachte bezorging: %s, tussen %s en %s", DateHelper::formatDutchDate($colli['eta']['start']), $start->format('H:i'), $end->format('H:i'));
+            $result->packageStatus = sprintf("Verwachte bezorging: %s, tussen %s en %s", DateHelper::formatDutchDate($colli['eta']['start']), $start->format('H:i'), $end->format('H:i'));
+            $result->packageStatusDate = $colli['eta']['start'];
         }
 
         return $result;

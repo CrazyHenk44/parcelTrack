@@ -14,7 +14,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
     private object $details;
 
     private static array $displayConfig = [
-        "Status" => ["type" => "status", "path" => "statusPhase.message"],
+        "Status" => ["type" => "status", "path" => "statusPhase.message"], 
         "Recipient" => ["type" => "person", "path" => "recipient"],
         "Sender" => ["type" => "person", "path" => "sender"],
         "Weight" => ["type" => "weight", "path" => "details.dimensions.weight"],
@@ -40,7 +40,8 @@ class PostNLDisplayHelper implements DisplayHelperInterface
             'shipper' => $this->package->shipper,
             'trackingCode' => $this->package->trackingCode,
             'postalCode' => $this->package->getPostalCode(),
-            'status' => $this->package->status,
+            'packageStatus' => $this->package->packageStatus,
+            'packageStatusDate' => $this->package->packageStatusDate,
             'customName' => $this->package->metadata->customName,
             'events' => $this->package->events,
             'metadata' => [
@@ -69,26 +70,6 @@ class PostNLDisplayHelper implements DisplayHelperInterface
             'Weight' => 'Gewicht',
             'Dimensions' => 'Afmetingen',
         ];
-
-        // Handle special status boxe
-        if (isset($this->details->isDelivered) && $this->details->isDelivered) {
-            $deliveryDate = new DateTime($this->details->deliveryDate);
-            $formatted['Status'] = sprintf('<div class="delivered-box"><h4>Bezorgd</h4><p>%s</p></div>', $this->formatDutchDate($deliveryDate));
-        } elseif (isset($this->details->isAtRetailLocation) && $this->details->isAtRetailLocation) {
-            $deliveryDate = new DateTime($this->details->deliveryDate);
-            $formatted['STATUS'] = sprintf('<div class="eta-prominent"><h4>Kan opgehaald worden</h4><p>%s</p></div>', $this->formatDutchDate($deliveryDate));
-        } elseif (isset($this->details->isPickedUpAtRetailLocation) && $this->details->isPickedUpAtRetailLocation) {
-            $deliveryDate = new DateTime($this->details->deliveryDate);
-            $formatted['Status'] = sprintf('<div class="delivered-box"><h4>Opgehaald</h4><p>%s</p></div>', $this->formatDutchDate($deliveryDate));
-        } else if (isset($this->details->eta)) {
-            $value = $this->details->eta;
-            $start = new DateTime($value->start);
-            $end = new DateTime($value->end);
-            $dateStr = (new \IntlDateFormatter('nl_NL', \IntlDateFormatter::FULL, \IntlDateFormatter::NONE, null, null, 'EEEE d MMMM'))->format($start);
-            $startTime = $start->format('H:i');
-            $endTime = $end->format('H:i');
-            $formatted['STATUS'] = "<div class=\"eta-prominent\"><h4>Verwachte aflevertijd</h4><p>{$dateStr}</p><p>{$startTime} - {$endTime}</p></div>";
-        }
 
         foreach ($this->config as $label => $spec) {
             // Skip special cases already handled

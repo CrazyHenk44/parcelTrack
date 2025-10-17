@@ -31,7 +31,7 @@ class StorageService
         }
 
         // Add validation to ensure essential properties exist before constructing the object.
-        if (!isset($data->trackingCode, $data->shipper, $data->status, $data->rawResponse)) {
+        if (!isset($data->trackingCode, $data->shipper, $data->packageStatus, $data->rawResponse)) {
             // Optionally, log this event to identify problematic files.
             // error_log("Skipping invalid package file: {$filename}");
             return null;
@@ -41,17 +41,15 @@ class StorageService
         $result = new TrackingResult(
             $data->trackingCode,
             $data->shipper,
-            $data->status,
+            $data->packageStatus,
             $data->postalCode ?? null, // Ensure postalCode is string or null
             $data->country ?? 'NL', // Default to NL for existing packages
             $data->rawResponse
         );
 
         // Now populate the other properties that are not part of the constructor
-        $result->sender = $data->sender ?? null;
-        $result->receiver = $data->receiver ?? null;
-        $result->isDelivered = $data->isDelivered ?? false;
-        $result->eta = $data->eta ?? null;
+        $result->packageStatusDate = $data->packageStatusDate ?? null;
+        $result->isCompleted = $data->isCompleted ?? false;
 
         if (isset($data->events) && is_array($data->events)) {
             foreach ($data->events as $eventData) {
