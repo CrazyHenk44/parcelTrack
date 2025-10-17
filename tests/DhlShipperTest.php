@@ -7,7 +7,6 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use ParcelTrack\DhlTranslationService;
 use ParcelTrack\Logger;
 use ParcelTrack\Shipper\DhlShipper;
 use PHPUnit\Framework\TestCase;
@@ -40,8 +39,7 @@ class DhlShipperTest extends TestCase
         $handlerStack = HandlerStack::create($mock);
         $client = new Client(['handler' => $handlerStack, 'http_errors' => false]);
 
-        $translationService = new DhlTranslationService($this->logger);
-        $shipper = new DhlShipper($this->logger, $translationService, $client);
+        $shipper = new DhlShipper($this->logger, $client);
         $result = $shipper->fetch($trackingCode, $postalCode, $country);
 
         // Assertions for the TrackingResult object

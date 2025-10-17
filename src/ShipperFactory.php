@@ -14,13 +14,11 @@ use ParcelTrack\ShipperConstants; // Import ShipperConstants
 class ShipperFactory
 {
     private Logger $logger;
-    private DhlTranslationService $translationService;
     private Config $config;
 
     public function __construct(Logger $logger, Config $config)
     {
         $this->logger = $logger;
-        $this->translationService = new DhlTranslationService($logger);
         $this->config = $config;
     }
 
@@ -28,7 +26,7 @@ class ShipperFactory
     {
         switch ($shipperName) { // Use raw shipperName, not lowercase
             case ShipperConstants::DHL:
-                return new DhlShipper($this->logger, $this->translationService);
+                return new DhlShipper($this->logger);
             case ShipperConstants::POSTNL:
                 return new PostNLShipper($this->logger);
             case ShipperConstants::SHIP24:
@@ -43,18 +41,14 @@ class ShipperFactory
         }
     }
 
-    public function getDhlTranslationService(): DhlTranslationService
-    {
-        return $this->translationService;
-    }
-
     public function createDisplayHelper(TrackingResult $package): ?DisplayHelperInterface
     {
         $shipperName = ($package->shipper); // Use raw shipper name from package
 
         switch ($shipperName) {
             case ShipperConstants::DHL:
-                return new DhlDisplayHelper($package, $this->logger, $this->getDhlTranslationService());
+                $dhlShipper = new DhlShipper($this->logger);
+                return new DhlDisplayHelper($package, $this->logger);
             case ShipperConstants::POSTNL:
                 return new PostNLDisplayHelper($package, $this->logger);
             case ShipperConstants::SHIP24:

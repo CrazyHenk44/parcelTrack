@@ -28,10 +28,6 @@ This section summarizes the current state of the application and key technical d
 
 -   **`src/Shipper/*`**: Implements the `ShipperInterface` per shipper.
 
-### DHL Translation
-
--   **`DhlTranslationService.php`**: A dedicated service that fetches and caches translations for DHL status codes to provide user-friendly descriptions.
-
 ### Backend (`api.php`)
 
 A RESTful API that serves as the bridge between the frontend and the data storage.

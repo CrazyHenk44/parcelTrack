@@ -17,7 +17,6 @@ This list covers everything from documentation and security to code quality and 
 ### 3. 🚀 Optimizations & Best Practices
 
 #### General
-- [ ] **Dependency Injection:** While `ShipperFactory` uses DI for `Logger` and `Config`, consider extending this pattern to other classes where dependencies are currently instantiated directly (e.g., `DhlTranslationService` in `ShipperFactory`).
 
 #### PHP Backend
 - [ ] **`src/api.php`:**

@@ -18,11 +18,16 @@ class DhlShipper implements ShipperInterface
     private DhlTranslationService $translationService;
     private Client $client;
 
-    public function __construct(Logger $logger, DhlTranslationService $translationService, Client $client = null)
+    public function __construct(Logger $logger, Client $client = null)
     {
         $this->logger = $logger;
-        $this->translationService = $translationService;
+        $this->translationService = new DhlTranslationService($logger);
         $this->client = $client ?? new Client();
+    }
+
+    public function getDhlTranslationService(): DhlTranslationService
+    {
+        return $this->translationService;
     }
 
     public function fetch(string $trackingCode, string $postalCode, string $country): ?TrackingResult

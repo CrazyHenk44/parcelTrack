@@ -12,7 +12,7 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private TrackingResult $package;
     private array $config;
     private object $details;
-    private ?DhlTranslationService $translationService;
+    private DhlTranslationService $translationService;
 
     private static array $displayConfig = [
         "Sender" => ["type" => "person", "path" => "origin"],
@@ -27,13 +27,12 @@ class DhlDisplayHelper implements DisplayHelperInterface
         "Weight" => ["type" => "weight_dhl", "path" => "weight"],
     ];
 
-    public function __construct(TrackingResult $package, Logger $logger, ?\ParcelTrack\DhlTranslationService $dhlTranslationService = null)
+    public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
         $this->config = self::$displayConfig;
-        $this->setLogger($logger); // Set logger for the trait
-        $this->translationService = $dhlTranslationService;
-
+        $this->setLogger($logger);
+        $this->translationService = new DhlTranslationService($logger);
         $raw = json_decode($package->rawResponse);
         $this->details = (is_array($raw) && isset($raw[0])) ? $raw[0] : new \stdClass();
     }

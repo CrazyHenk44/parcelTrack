@@ -6,7 +6,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
-use ParcelTrack\DhlTranslationService;
 use ParcelTrack\Config;
 use ParcelTrack\Logger;
 use ParcelTrack\PackageStatus;
@@ -36,7 +35,6 @@ class ApiIntegrationTest extends TestCase
     {
         // Suppress INFO/DEBUG logs during test data generation
         $logger = new Logger(Logger::ERROR);
-        $translationService = new DhlTranslationService($logger);
 
         // Generate DHL TrackingResult
         $dhlTrackingData = json_decode(file_get_contents(__DIR__ . '/data/DHL_3SDHLEXAMPLE.json'), true);
@@ -46,7 +44,7 @@ class ApiIntegrationTest extends TestCase
         ]);
         $dhlHandlerStack = HandlerStack::create($dhlMock);
         $dhlClient = new Client(['handler' => $dhlHandlerStack]);
-        $dhlShipper = new DhlShipper($logger, $translationService, $dhlClient);
+        $dhlShipper = new DhlShipper($logger, $dhlClient);
         $dhlResult = $dhlShipper->fetch('3SDHLEXAMPLE', '5678CD', 'NL');
 
         $dhlResult->metadata->customName = 'DHL Test Package';
