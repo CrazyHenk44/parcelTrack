@@ -1,9 +1,0 @@
-{
-    "Origin": "TrackInfo.OriginCountryCode",
-    "Destination": "TrackInfo.DestinationCountryCode",
-    "Status": "TrackData.TrackStatus",
-    "Weight": "TrackInfo.Weight",
-    "Note" : "TrackInfo.AdditionalNotes",
-    "Created On": { "path": "TrackInfo.CreatedOn", "type": "date" },
-    "Last Update": { "path": "TrackInfo.LastTrackEvent.ProcessDate", "type": "date" }
-}

@@ -12,10 +12,23 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     private array $config;
     private ?object $details;
 
-    public function __construct(TrackingResult $package, array $config, Logger $logger, DhlTranslationService $dhlTranslationService = null)
+    private static array $displayConfig = [
+        "Origin" => "shipment.originCountryCode",
+        "Destination" => "shipment.destinationCountryCode",
+        "Status Milestone" => "shipment.statusMilestone",
+        "Info Received" => ["path" => "statistics.timestamps.infoReceivedDatetime", "type" => "date"],
+        "In Transit" => ["path" => "statistics.timestamps.inTransitDatetime", "type" => "date"],
+        "Out for Delivery" => ["path" => "statistics.timestamps.outForDeliveryDatetime", "type" => "date"],
+        "Failed Attempt" => ["path" => "statistics.timestamps.failedAttemptDatetime", "type" => "date"],
+        "Available for Pickup" => ["path" => "statistics.timestamps.availableForPickupDatetime", "type" => "date"],
+        "Exception" => ["path" => "statistics.timestamps.exceptionDatetime", "type" => "date"],
+        "Delivered" => ["path" => "statistics.timestamps.deliveredDatetime", "type" => "date"],
+    ];
+
+    public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
-        $this->config = $config;
+        $this->config = self::$displayConfig;
         $this->setLogger($logger); // Set logger for the trait
 
         $raw = json_decode($package->rawResponse);

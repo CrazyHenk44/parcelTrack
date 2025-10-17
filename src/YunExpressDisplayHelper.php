@@ -12,14 +12,22 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
     private array $config;
     private ?object $details;
 
+    private static array $displayConfig = [
+        "Origin" => "TrackInfo.OriginCountryCode",
+        "Destination" => "TrackInfo.DestinationCountryCode",
+        "Status" => "TrackData.TrackStatus",
+        "Weight" => "TrackInfo.Weight",
+        "Note" => "TrackInfo.AdditionalNotes",
+        "Created On" => ["path" => "TrackInfo.CreatedOn", "type" => "date"],
+        "Last Update" => ["path" => "TrackInfo.LastTrackEvent.ProcessDate", "type" => "date"],
+    ];
+
     public function __construct(
         TrackingResult $package,
-        array $config,
-        Logger $logger,
-        ?DhlTranslationService $dhlTranslationService = null
+        Logger $logger
     ) {
         $this->package = $package;
-        $this->config = $config;
+        $this->config = self::$displayConfig;
         $this->setLogger($logger);
         
         $raw = json_decode($package->rawResponse);

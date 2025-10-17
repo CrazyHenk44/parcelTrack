@@ -96,13 +96,7 @@ class ApiIntegrationTest extends TestCase
 
         $logger = new Logger(Logger::ERROR); // Suppress operational logs
         $config = new Config();
-        $shipperConfigs = [];
-        $configFiles = glob(__DIR__ . '/../config/*.json');
-        foreach ($configFiles as $file) {
-            $shipperName = strtoupper(basename($file, '.json'));
-            $shipperConfigs[$shipperName] = json_decode(file_get_contents($file), true);
-        }
-        $shipperFactory = new ShipperFactory($logger, $config, $shipperConfigs);
+        $shipperFactory = new ShipperFactory($logger, $config);
 
         $displayPackages = [];
         foreach (self::$packagesToTest as $package) {

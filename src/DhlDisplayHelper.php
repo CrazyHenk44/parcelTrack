@@ -14,10 +14,23 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private object $details;
     private ?DhlTranslationService $translationService;
 
-    public function __construct(TrackingResult $package, array $config, Logger $logger, \ParcelTrack\DhlTranslationService $dhlTranslationService = null)
+    private static array $displayConfig = [
+        "Sender" => ["type" => "person", "path" => "origin"],
+        "Receiver" => ["type" => "person", "path" => "receiver"],
+        "Destination" => ["type" => "person", "path" => "destination"],
+        "Shipper Name" => "shipper.name",
+        "Type" => "destination.type",
+        "Map" => ["path" => "destination", "type" => "map_link"],
+        "Opening Hours" => ["type" => "opening_hours_dhl", "path" => "destination.openingTimes"],
+        "Closed" => ["type" => "closure_periods", "path" => "destination.closurePeriods"],
+        "Dimensions" => ["type" => "dimensions_dhl", "path" => "length"],
+        "Weight" => ["type" => "weight_dhl", "path" => "weight"],
+    ];
+
+    public function __construct(TrackingResult $package, Logger $logger, ?\ParcelTrack\DhlTranslationService $dhlTranslationService = null)
     {
         $this->package = $package;
-        $this->config = $config;
+        $this->config = self::$displayConfig;
         $this->setLogger($logger); // Set logger for the trait
         $this->translationService = $dhlTranslationService;
 

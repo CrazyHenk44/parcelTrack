@@ -13,10 +13,21 @@ class PostNLDisplayHelper implements DisplayHelperInterface
     private array $config;
     private object $details;
 
-    public function __construct(TrackingResult $package, array $config, Logger $logger, \ParcelTrack\DhlTranslationService $dhlTranslationService = null)
+    private static array $displayConfig = [
+        "Status" => ["type" => "status", "path" => "statusPhase.message"],
+        "Recipient" => ["type" => "person", "path" => "recipient"],
+        "Sender" => ["type" => "person", "path" => "sender"],
+        "Weight" => ["type" => "weight", "path" => "details.dimensions.weight"],
+        "Dimensions" => ["type" => "dimensions", "path" => "details.dimensions"],
+        "Retail Location" => ["type" => "address", "path" => "retailDeliveryLocation.address"],
+        "Map Link" => ["type" => "map_link", "path" => "retailDeliveryLocation.coordinate"],
+        "Opening Hours" => ["type" => "opening_hours", "path" => "retailDeliveryLocation.businessHours"],
+    ];
+
+    public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
-        $this->config = $config;
+        $this->config = self::$displayConfig;
         $this->setLogger($logger); // Set logger for the trait
 
         $raw = json_decode($package->rawResponse);

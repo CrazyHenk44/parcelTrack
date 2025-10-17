@@ -16,14 +16,12 @@ class ShipperFactory
     private Logger $logger;
     private DhlTranslationService $translationService;
     private Config $config;
-    private array $shipperConfigs;
 
-    public function __construct(Logger $logger, Config $config, array $shipperConfigs = [])
+    public function __construct(Logger $logger, Config $config)
     {
         $this->logger = $logger;
         $this->translationService = new DhlTranslationService($logger);
         $this->config = $config;
-        $this->shipperConfigs = $shipperConfigs;
     }
 
     public function create(string $shipperName): ?ShipperInterface
@@ -53,17 +51,16 @@ class ShipperFactory
     public function createDisplayHelper(TrackingResult $package): ?DisplayHelperInterface
     {
         $shipperName = ($package->shipper); // Use raw shipper name from package
-        $config = $this->shipperConfigs[strtoupper($shipperName)] ?? [];
 
         switch ($shipperName) {
             case ShipperConstants::DHL:
-                return new DhlDisplayHelper($package, $config, $this->logger, $this->getDhlTranslationService());
+                return new DhlDisplayHelper($package, $this->logger, $this->getDhlTranslationService());
             case ShipperConstants::POSTNL:
-                return new PostNLDisplayHelper($package, $config, $this->logger);
+                return new PostNLDisplayHelper($package, $this->logger);
             case ShipperConstants::SHIP24:
-                return new Ship24DisplayHelper($package, $config, $this->logger);
+                return new Ship24DisplayHelper($package, $this->logger);
             case ShipperConstants::YUNEXPRESS:
-                return new YunExpressDisplayHelper($package, $config, $this->logger);
+                return new YunExpressDisplayHelper($package, $this->logger);
             default:
                 return null;
         }

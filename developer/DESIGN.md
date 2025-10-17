@@ -10,7 +10,6 @@ This section summarizes the current state of the application and key technical d
 
 -   **`src/`**: Contains all PHP source code under the `ParcelTrack` namespace.
 -   **`data/`**: Stores the JSON files for each tracked package.
--   **`config/`**: Contains shipper-specific JSON configuration files that control how details are displayed in the frontend.
 -   **`translations/`**: Caches the translation file from the DHL API to reduce external requests.
 -   **`web/`**: Contains the frontend application (`index.html`, `style.css`, `script.js`, etc.).
 -   **`tests/`**: Contains the test suite, including test data and snapshot tests for the API.

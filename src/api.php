@@ -22,14 +22,7 @@ $config = new Config();
 $logger = new Logger($config->logLevel); // Use log level from Config.php
 $storage = new StorageService($testDataPath);
 
-// Load shipper display configurations
-$shipperConfigs = [];
-$configFiles = glob(__DIR__ . '/../config/*.json');
-foreach ($configFiles as $file) {
-    $shipperName = strtoupper(basename($file, '.json'));
-    $shipperConfigs[$shipperName] = json_decode(file_get_contents($file), true);
-}
-$shipperFactory = new ShipperFactory($logger, $config, $shipperConfigs);
+$shipperFactory = new ShipperFactory($logger, $config);
 
 // Determine request method, default to GET for CLI testing
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';

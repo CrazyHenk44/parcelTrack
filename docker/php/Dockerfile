@@ -67,7 +67,6 @@ COPY --from=builder /opt/parceltrack/src ./src
 COPY --from=builder /opt/parceltrack/vendor ./vendor
 COPY --from=builder /opt/parceltrack/web ./web
 COPY --from=builder /opt/parceltrack/developer ./developer
-COPY config/ ./config
 
 # Set correct permissions for copied configuration files
 RUN chmod +x /usr/local/bin/entrypoint.sh
