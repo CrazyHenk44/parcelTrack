@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
+
+use ParcelTrack\TrackingResult;
+use ParcelTrack\Helpers\Logger;
 
 class YunExpressDisplayHelper implements DisplayHelperInterface
 {
@@ -13,13 +16,16 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
     private ?object $details;
 
     private static array $displayConfig = [
-        "Origin" => "TrackInfo.OriginCountryCode",
-        "Destination" => "TrackInfo.DestinationCountryCode",
+        "Oorsprong" => "TrackInfo.OriginCountryCode",
+        "Bestemming" => "TrackInfo.DestinationCountryCode",
         "Status" => "TrackData.TrackStatus",
-        "Weight" => "TrackInfo.Weight",
-        "Note" => "TrackInfo.AdditionalNotes",
-        "Created On" => ["path" => "TrackInfo.CreatedOn", "type" => "date"],
-        "Last Update" => ["path" => "TrackInfo.LastTrackEvent.ProcessDate", "type" => "date"],
+        "Gewicht" => "TrackInfo.Weight",
+        "Notitie" => "TrackInfo.AdditionalNotes",
+        "Vracht #" => "TrackInfo.WaybillNumber",
+        "Tracking #" => "TrackInfo.TrackingNumber",
+        "Klantorder #" => "TrackInfo.CustomerOrderNumber",
+        "Aangemaakt" => ["path" => "TrackInfo.CreatedOn", "type" => "date"],
+        "Bijgewerkt" => ["path" => "TrackInfo.LastTrackEvent.ProcessDate", "type" => "date"],
     ];
 
     public function __construct(
@@ -37,7 +43,7 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
 
     public function getShipperName(): string
     {
-        return ShipperConstants::YUNEXPRESS;
+        return \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS;
     }
 
     private function generateTrackUrl(): string
@@ -75,7 +81,7 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
             } elseif (is_array($spec) && isset($spec['path'])) {
                 $value = $this->getValue($this->details, $spec['path']);
                 if ($value && isset($spec['type']) && $spec['type'] === 'date') {
-                    $value = DateHelper::formatDutchDate($value);
+                    $value = \ParcelTrack\Helpers\DateHelper::formatDutchDate($value);
                 }
             }
 

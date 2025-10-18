@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ParcelTrack</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -33,20 +33,18 @@
                         <h3>Geschiedenis</h3>
                         <div id="event-list" class="scrollable-panel">
                         </div>
-                        <div id="management-section" class="detail-actions hidden">
-                            <div class="management-item"><button id="status-toggle-btn"></button></div>
-                            <div class="management-item"><span id="notification-email"></span></div>
-                        </div>
                     </div>
                     <div id="detail-summary-container">
                         <h3>Details</h3>
                         <div id="detail-summary" class="scrollable-panel">
                         </div>
-                        <div id="detail-actions" class="detail-actions">
-                            <a id="detail-weblink" href="#" target="_blank" class="weblink detail-footer-item" title="Bekijk op website van vervoerder"><span role="img" aria-label="globe">🌐</span></a>
-                            <span id="detail-tracking-code" class="detail-footer-item"></span>
-                            <button id="detail-delete-btn" class="delete-btn detail-footer-item" title="Pakket verwijderen"><span role="img" aria-label="trash can">🗑️</span></button>
-                        </div>
+                        <a id="detail-weblink" href="#" target="_blank" class="weblink detail-footer-item"></a>
+                    </div>
+                </div>
+                <div id="detail-footer-bars">
+                    <div id="combined-actions" class="detail-actions hidden">
+                        <button id="status-toggle-btn"></button>
+                        <button id="detail-delete-btn" class="delete-btn" title="Pakket verwijderen"><span role="img" aria-label="trash can">🗑️</span></button>
                     </div>
                 </div>
             </div>
@@ -93,10 +91,6 @@
             <div id="form-message" class="hidden"></div>
         </div>
     </div>
-
-    <footer>
-        <span id="version-info"></span>
-    </footer>
 
     <script src="script.js"></script>
     <script>

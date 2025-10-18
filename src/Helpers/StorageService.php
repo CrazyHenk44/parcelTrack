@@ -1,6 +1,10 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Helpers;
+
+use ParcelTrack\Event;
+use ParcelTrack\PackageMetadata;
+use ParcelTrack\TrackingResult;
 
 class StorageService
 {
@@ -8,7 +12,7 @@ class StorageService
 
     public function __construct(?string $storagePath = null)
     {
-        $this->storagePath = $storagePath ?? __DIR__ . '/../data/';
+        $this->storagePath = $storagePath ?? __DIR__ . '/../../data/';
     }
 
     public function save(TrackingResult $result): void
@@ -30,24 +34,19 @@ class StorageService
             return null;
         }
 
-        // Add validation to ensure essential properties exist before constructing the object.
         if (!isset($data->trackingCode, $data->shipper, $data->packageStatus, $data->rawResponse)) {
-            // Optionally, log this event to identify problematic files.
-            // error_log("Skipping invalid package file: {$filename}");
             return null;
         }
 
-        // Construct the TrackingResult with the arguments it expects
         $result = new TrackingResult(
             $data->trackingCode,
             $data->shipper,
             $data->packageStatus,
-            $data->postalCode ?? null, // Ensure postalCode is string or null
-            $data->country ?? 'NL', // Default to NL for existing packages
+            $data->postalCode ?? null,
+            $data->country ?? 'NL',
             $data->rawResponse
         );
 
-        // Now populate the other properties that are not part of the constructor
         $result->packageStatusDate = $data->packageStatusDate ?? null;
         $result->isCompleted = $data->isCompleted ?? false;
 
@@ -61,12 +60,10 @@ class StorageService
             }
         }
 
-        // Ensure events are always sorted newest first after loading.
         usort($result->events, function ($a, $b) {
             return strtotime($b->timestamp) <=> strtotime($a->timestamp);
         });
 
-        // Handle metadata if it exists in the stored data, otherwise the constructor's default is used
         if (isset($data->metadata)) {
             $result->metadata = PackageMetadata::fromObject($data->metadata);
         }

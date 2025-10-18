@@ -1,6 +1,6 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Shipper;
 
 class ShipperConstants
 {

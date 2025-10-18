@@ -1,6 +1,8 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
+
+use ParcelTrack\Helpers\Logger;
 
 class DhlTranslationService
 {
@@ -11,7 +13,7 @@ class DhlTranslationService
     public function __construct(Logger $logger)
     {
         $this->logger = $logger;
-        $this->translationFile = __DIR__ . '/../translations/dhl_nl_NL.json';
+        $this->translationFile = __DIR__ . '/../../translations/dhl_nl_NL.json';
     }
 
     public function getTranslations(): array

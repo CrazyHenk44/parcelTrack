@@ -1,9 +1,10 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
 
 use DateTime;
 use ParcelTrack\TrackingResult;
+use ParcelTrack\Helpers\Logger;
 
 class PostNLDisplayHelper implements DisplayHelperInterface
 {
@@ -14,7 +15,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
     private object $details;
 
     private static array $displayConfig = [
-        "Status" => ["type" => "status", "path" => "statusPhase.message"], 
+        "Status" => ["type" => "status", "path" => "statusPhase.message"],
         "Recipient" => ["type" => "person", "path" => "recipient"],
         "Sender" => ["type" => "person", "path" => "sender"],
         "Weight" => ["type" => "weight", "path" => "details.dimensions.weight"],
@@ -127,7 +128,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                             }
                             break;
                         default:
-                            $this->logger->log("Unknown type '{$spec['type']}' for label '{$label}'", Logger::DEBUG);
+                            $this->logger->log("Unknown type '{".$spec['type']."}' for label '{$label}'", Logger::DEBUG);
                             break;
                     }
                 }

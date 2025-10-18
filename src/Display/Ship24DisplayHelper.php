@@ -1,8 +1,10 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
 
 use ParcelTrack\TrackingResult;
+use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Helpers\Logger;
 
 class Ship24DisplayHelper implements DisplayHelperInterface
 {
@@ -15,7 +17,8 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     private static array $statusMilestoneTranslations = [
         "delivered" => "Bezorgd",
         "in_transit" => "Onderweg",
-        "info_received" => "Aangemeld"
+        "info_received" => "Info ontvangen",
+        "pending" => "Aangemeld"
     ];
 
     public static function translateStatusMilestone(string $status): string
@@ -25,15 +28,16 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     }
 
     private static array $displayConfig = [
-        "Origin" => "shipment.originCountryCode",
-        "Destination" => "shipment.destinationCountryCode",
-        "Info Received" => ["path" => "statistics.timestamps.infoReceivedDatetime", "type" => "date"],
-        "In Transit" => ["path" => "statistics.timestamps.inTransitDatetime", "type" => "date"],
-        "Out for Delivery" => ["path" => "statistics.timestamps.outForDeliveryDatetime", "type" => "date"],
-        "Failed Attempt" => ["path" => "statistics.timestamps.failedAttemptDatetime", "type" => "date"],
-        "Available for Pickup" => ["path" => "statistics.timestamps.availableForPickupDatetime", "type" => "date"],
-        "Exception" => ["path" => "statistics.timestamps.exceptionDatetime", "type" => "date"],
-        "Delivered" => ["path" => "statistics.timestamps.deliveredDatetime", "type" => "date"],
+        "Oorsprong" => "shipment.originCountryCode",
+        "Bestemming" => "shipment.destinationCountryCode",
+        "Info Ontvangen" => ["path" => "statistics.timestamps.infoReceivedDatetime", "type" => "date"],
+        "Onderweg" => ["path" => "statistics.timestamps.inTransitDatetime", "type" => "date"],
+        "Chauffeur onderweg" => ["path" => "statistics.timestamps.outForDeliveryDatetime", "type" => "date"],
+        "Mislukte poging" => ["path" => "statistics.timestamps.failedAttemptDatetime", "type" => "date"],
+        "Ophalen vanaf" => ["path" => "statistics.timestamps.availableForPickupDatetime", "type" => "date"],
+        "Uitzondering" => ["path" => "statistics.timestamps.exceptionDatetime", "type" => "date"],
+        "Afgeleverd" => ["path" => "statistics.timestamps.deliveredDatetime", "type" => "date"],
+        "Aangemaakt" => ["path" => "tracker.createdAt", "type" => "date"],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)

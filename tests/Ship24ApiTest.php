@@ -7,7 +7,7 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use ParcelTrack\Logger;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Shipper\Ship24Shipper;
 use PHPUnit\Framework\TestCase;
 
@@ -46,7 +46,7 @@ class Ship24ApiTest extends TestCase
         $this->assertEquals('Ship24', $result->shipper);
         $this->assertEquals($trackingCode, $result->trackingCode);
         $this->assertEquals($postalCode, $result->getPostalCode());
-        $this->assertEquals('Aangemeld', $result->packageStatus);
+        $this->assertEquals('Info ontvangen', $result->packageStatus);
         $this->assertEquals($responseBody, $result->rawResponse);
 
         // Assertions for Events

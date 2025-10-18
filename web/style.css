@@ -1,8 +1,8 @@
 /* Basic Styles */
 :root {
-    --bg-color: #f4f7f6;
+    --bg-color: #ebebeb; /* Slightly less white background for light mode */
     --text-color: #333;
-    --header-bg: #fff;
+    --header-bg: #e0e0e0; /* Even less white header background for light mode */
     --border-color: #ddd;
     --item-border-color: #eee;
     --item-hover-bg: #e9f5ff;
@@ -10,7 +10,9 @@
     --item-selected-border: #007bff;
     --inactive-bg: #f2ebeb;
     --inactive-text: #cbb9b9;
+    --inactive-title-color: #999; /* New variable for inactive package title color */
     --placeholder-text: #888;
+    --theme-toggle-bg-light: #f0f0f0; /* New variable for theme toggle button background in light mode */
     --detail-header-bg: #fcfcfc;
     --detail-panel-border: #eee;
     --h3-border-color: #ccc;
@@ -42,11 +44,12 @@ body.dark {
     --border-color: #444;
     --item-border-color: #333;
     --item-hover-bg: #3a3a3a;
-    --item-selected-bg: #4a4a4a;
+    --item-selected-bg: #0056b3; /* A distinct blue for selected items */
     --item-selected-border: #007bff;
-    --inactive-bg: #3a3a3a;
-    --inactive-text: #888;
+    --inactive-bg: #2a2a2a; /* Slightly darker for inactive items */
+    --inactive-text: #a0a0a0; /* Increased contrast for inactive text */
     --placeholder-text: #888;
+    --package-item-status-color: #b0b0b0; /* New variable for package item status */
     --detail-header-bg: #2a2a2a;
     --detail-panel-border: #444;
     --h3-border-color: #555;
@@ -116,6 +119,11 @@ header h1 {
     flex-direction: column;
 }
 
+#detail-placeholder {
+    margin-top: 30px;
+    margin-left: 30px;
+}
+
 #package-list {
     overflow-y: auto;
     flex-grow: 1;
@@ -131,7 +139,11 @@ header h1 {
 
 .package-item.inactive {
     background-color: var(--inactive-bg);
-    color: var(--inactive-text);
+    color: var(--inactive-text); /* This applies to general text in inactive items */
+}
+
+.package-item.inactive .editable-name {
+    color: var(--inactive-title-color); /* Apply specific color to inactive title */
 }
 
 .package-item:hover {
@@ -142,6 +154,10 @@ header h1 {
     background-color: var(--item-selected-bg);
     border-left: 3px solid var(--item-selected-border);
     padding-left: calc(1rem - 3px);
+}
+
+.package-item-status {
+    margin-left: 22px;
 }
 
 .package-item-header {
@@ -179,37 +195,45 @@ header h1 {
 
 .weblink {
     text-decoration: none;
-    color: #007bff;
+    color: var(--weblink-color, #007bff); /* Use a CSS variable for flexibility */
 }
 
-.package-item-status {
-    font-size: 0.9rem;
-    color: #666;
-}
-
-/* Detail View */
-#detail-placeholder {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: var(--placeholder-text);
-}
-
-#detail-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-#detail-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    background-color: var(--detail-header-bg);
-    position: relative;
+body.dark {
+    --bg-color: #1a1a1a;
+    --text-color: #f1f1f1;
+    --header-bg: #2a2a2a;
+    --border-color: #444;
+    --item-border-color: #333;
+    --item-hover-bg: #3a3a3a;
+    --item-selected-bg: #0056b3; /* A distinct blue for selected items */
+    --item-selected-border: #007bff;
+    --inactive-bg: #2a2a2a; /* Slightly darker for inactive items */
+    --inactive-text: #a0a0a0; /* Increased contrast for inactive text */
+    --inactive-title-color: #c0c0c0; /* Brighter inactive title in dark mode */
+    --placeholder-text: #888;
+    --package-item-status-color: #b0b0b0; /* New variable for package item status */
+    --detail-header-bg: #2a2a2a;
+    --detail-panel-border: #444;
+    --h3-border-color: #555;
+    --event-border-color: #007bff;
+    --event-timestamp-color: #aaa;
+    --event-location-color: #999;
+    --eta-bg: #2a3a4a;
+    --eta-border: #4a5a6a;
+    --eta-text: #99ccff;
+    --delivered-bg: #2a4a3a;
+    --delivered-border: #4a6a5a;
+    --delivered-text: #99ff99;
+    --modal-bg: rgba(0,0,0,0.7);
+    --modal-content-bg: #2a2a2a;
+    --modal-border-color: #555;
+    --button-bg: #007bff;
+    --button-text: white;
+    --button-hover-bg: #0056b3;
+    --delete-bg: #5a2a2a;
+    --delete-text: #ff9999;
+    --delete-border: #7a4a4a;
+    --shipper-text-color: #f1f1f1;
 }
 
 #detail-header h3 {
@@ -217,6 +241,7 @@ header h1 {
     font-size: 1.2rem;
     flex-grow: 1;
     text-align: center;
+    margin-top: 10px;
 }
 
 #toggle-details-btn {
@@ -234,6 +259,12 @@ header h1 {
     background-color: var(--button-hover-bg);
 }
 
+#detail-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .detail-panels {
     display: flex;
     flex-grow: 1;
@@ -245,7 +276,6 @@ header h1 {
     display: flex;
     flex-direction: column;
     overflow-y: hidden;
-    padding: 1rem;
 }
 
 #detail-summary-container {
@@ -253,7 +283,6 @@ header h1 {
     display: flex;
     flex-direction: column;
     overflow-y: hidden;
-    padding: 1rem;
 }
 
 #detail-summary-container.hidden {
@@ -272,12 +301,13 @@ header h1 {
 #detail-summary-container h3 {
     margin-top: 0;
     border-bottom: 1px solid var(--h3-border-color);
-    padding-bottom: 0.5rem;
+    padding: 1rem 1rem 0.5rem;
 }
 
 .scrollable-panel {
     flex-grow: 1;
     overflow-y: auto;
+    padding: 1rem;
 }
 
 .event-item {
@@ -371,6 +401,16 @@ header h1 {
     border: 1px solid #ccc;
     border-radius: 3px;
     padding: 2px 4px;
+}
+
+/* Ensure all links within the detail summary are readable in dark mode */
+#detail-summary-container a {
+    color: var(--weblink-color, #007bff);
+}
+
+/* Specific rule for links within detail-field-value in dark mode */
+body.dark .detail-field-value a {
+    color: var(--weblink-color, #a0d0ff) !important; /* Use !important to override any inline styles */
 }
 
 /* Modal Styles */
@@ -470,15 +510,19 @@ header h1 {
 }
 
 /* Detail Actions row styling */
-.detail-actions {
+#detail-footer-bars {
+    width: 100%;
+    z-index: 10;
+    margin-bottom: 5px;
+}
+
+#combined-actions {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
     padding: 0.5rem 1rem;
     border-top: 1px solid var(--border-color);
     background-color: var(--detail-header-bg);
-    width: 100%;
-    box-sizing: border-box;
 }
 
 .management-item {
@@ -529,9 +573,12 @@ header h1 {
 }
 
 #detail-weblink {
-    font-size: 1.2rem;
+    display: block;
+    text-align: center;
+    padding-top: 1rem;
+    font-size: 1.1rem;
     text-decoration: none;
-    color: #007bff;
+    margin-bottom: 10px;
 }
 
 #detail-weblink:hover {
@@ -571,7 +618,8 @@ header h1 {
     }
 
     .detail-panels {
-        height: calc(100% - 53px);
+        flex-grow: 1;
+        overflow-y: auto;
     }
 
     #toggle-details-btn {
@@ -603,7 +651,7 @@ header h1 {
 }
 
 #theme-toggle-btn {
-    background: none;
+    background-color: var(--theme-toggle-bg-light, none); /* Use variable for background */
     border: 1px solid var(--border-color);
     color: var(--text-color);
     cursor: pointer;
@@ -614,6 +662,10 @@ header h1 {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+body.dark #theme-toggle-btn {
+    background-color: var(--header-bg); /* In dark mode, it should match the header */
 }
 
 .shipper-logo {

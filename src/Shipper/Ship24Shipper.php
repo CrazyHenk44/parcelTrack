@@ -3,12 +3,12 @@
 namespace ParcelTrack\Shipper;
 
 use ParcelTrack\Event;
-use ParcelTrack\Logger;
-use ParcelTrack\DateHelper;
-use ParcelTrack\Ship24DisplayHelper; // Import Ship24DisplayHelper
-use ParcelTrack\ShipperInterface;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Display\Ship24DisplayHelper; // Import Ship24DisplayHelper
+use ParcelTrack\Shipper\ShipperInterface;
 use ParcelTrack\TrackingResult;
-use ParcelTrack\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
 use GuzzleHttp\Client;
 
 class Ship24Shipper implements ShipperInterface

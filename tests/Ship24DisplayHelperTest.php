@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use ParcelTrack\DateHelper;
-use ParcelTrack\Logger;
+use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\PackageStatus;
-use ParcelTrack\Ship24DisplayHelper;
+use ParcelTrack\Display\Ship24DisplayHelper;
 use ParcelTrack\TrackingResult;
 use ParcelTrack\PackageMetadata;
 use PHPUnit\Framework\TestCase;

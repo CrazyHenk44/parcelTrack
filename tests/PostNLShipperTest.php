@@ -7,7 +7,7 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use ParcelTrack\Logger;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Shipper\PostNLShipper;
 use PHPUnit\Framework\TestCase;
 

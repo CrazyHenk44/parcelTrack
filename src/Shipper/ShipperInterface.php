@@ -1,6 +1,8 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Shipper;
+
+use ParcelTrack\TrackingResult;
 
 interface ShipperInterface
 {

@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleDetailsBtn = document.getElementById('toggle-details-btn');
     const refreshBtn = document.getElementById('refresh-btn');
     const detailDeleteBtn = document.getElementById('detail-delete-btn');
-    const detailTrackingCodeEl = document.getElementById('detail-tracking-code');
     const detailWebLinkEl = document.getElementById('detail-weblink');
     const backToListBtn = document.getElementById('back-to-list-btn');
 
@@ -19,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const addPackageForm = document.getElementById('add-package-form');
     const formMessageEl = document.getElementById('form-message');
 
-    const managementSection = document.getElementById('management-section');
+    const combinedActions = document.getElementById('combined-actions');
 
     let allPackages = [];
     let selectedPackage = null;
@@ -65,16 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const emailInput = document.getElementById('contactEmail');
             if (emailInput && defaultEmail) {
                 emailInput.placeholder = `Defaults to ${defaultEmail}`;
-            }
-
-            const version = data.version;
-            const versionInfoEl = document.getElementById('version-info');
-            if (version && versionInfoEl) {
-                const githubUrl = 'https://github.com/CrazyHenk44/parcel-track';
-                versionInfoEl.innerHTML = `
-                    Version: <a href="${githubUrl}/releases/tag/v${version}" target="_blank" rel="noopener noreferrer">${version}</a> | 
-                    <a href="${githubUrl}/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
-                `;
             }
 
             buildPackageList();
@@ -192,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearDetailView() {
         detailPlaceholderEl.classList.remove('hidden');
         detailContentEl.classList.add('hidden');
-        managementSection.classList.add('hidden');
+        combinedActions.classList.add('hidden');
         selectedPackage = null;
         document.querySelectorAll('.package-item').forEach(el => el.classList.remove('selected'));
         if (window.innerWidth <= 768) {
@@ -222,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         eventListEl.innerHTML = '';
         const detailSummaryEl = document.getElementById('detail-summary');
         detailSummaryEl.innerHTML = '';
-        managementSection.classList.add('hidden');
+        combinedActions.classList.add('hidden');
 
         console.log('Updating details for package:', pkg);
 
@@ -230,9 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
             detailTitleEl.textContent = pkg.customName || `${pkg.shipper} - ${pkg.trackingCode}`;
             detailDeleteBtn.dataset.shipper = pkg.shipper;
             detailDeleteBtn.dataset.trackingCode = pkg.trackingCode;
-            detailTrackingCodeEl.textContent = pkg.trackingCode;
-        } else {
-            detailTrackingCodeEl.textContent = '';
         }
 
         // Display packageStatus and packageStatusDate in a box at the top of the event list
@@ -254,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pkg.trackUrl && pkg.trackUrl !== '#') {
             detailWebLinkEl.href = pkg.trackUrl;
+            detailWebLinkEl.textContent = pkg.trackingCode;
             detailWebLinkEl.classList.remove('hidden');
         } else {
             detailWebLinkEl.classList.add('hidden');
@@ -287,14 +274,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (pkg && pkg.metadata) {
             const statusToggleButton = document.getElementById('status-toggle-btn');
-            const notificationEmailSpan = document.getElementById('notification-email');
 
             const currentStatus = pkg.metadata.status || 'active';
             statusToggleButton.textContent = currentStatus;
             statusToggleButton.className = '';
             statusToggleButton.classList.add(currentStatus);
-
-            notificationEmailSpan.textContent = pkg.metadata.contactEmail || defaultEmail;
 
             const newBtn = statusToggleButton.cloneNode(true);
             statusToggleButton.parentNode.replaceChild(newBtn, statusToggleButton);
@@ -305,10 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePackageStatus(pkg.shipper, pkg.trackingCode, newStatus);
             });
 
-            managementSection.classList.remove('hidden');
+            combinedActions.classList.remove('hidden');
         }
 
-        document.getElementById('detail-actions').classList.remove('hidden');
         document.getElementById('detail-header').classList.remove('hidden');
 
         if (window.innerWidth <= 768) {
@@ -471,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     refreshBtn.addEventListener('click', () => {
-        location.reload();
+        fetchData(); // Call fetchData to refresh the package list without a full page reload
     });
 
     fetchData();

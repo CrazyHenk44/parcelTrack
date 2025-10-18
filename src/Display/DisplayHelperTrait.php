@@ -1,11 +1,11 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
 
 use DateTime;
 use stdClass;
 
-use ParcelTrack\Logger;
+use ParcelTrack\Helpers\Logger;
 
 trait DisplayHelperTrait
 {

@@ -6,14 +6,14 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
-use ParcelTrack\Config;
-use ParcelTrack\Logger;
+use ParcelTrack\Helpers\Config;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\PackageStatus;
-use ParcelTrack\ShipperFactory;
+use ParcelTrack\Shipper\ShipperFactory;
 use ParcelTrack\Shipper\DhlShipper;
 use ParcelTrack\Shipper\PostNLShipper;
 use ParcelTrack\Shipper\Ship24Shipper;
-use ParcelTrack\StorageService;
+use ParcelTrack\Helpers\StorageService;
 use ParcelTrack\TrackingResult;
 use PHPUnit\Framework\TestCase;
 
@@ -137,7 +137,7 @@ class ApiIntegrationTest extends TestCase
         $this->assertEquals('Ship24', $ship24Package['shipper']);
         $this->assertEquals('Ship24 Test Package', $ship24Package['customName']);
         $this->assertEquals('active', $ship24Package['metadata']['status']);
-        $this->assertEquals('Aangemeld', $ship24Package['packageStatus']);
+        $this->assertEquals('Info ontvangen', $ship24Package['packageStatus']);
 
         // --- Test PostNL Package Formatting ---
         $this->assertEquals('PostNL', $postnlPackage['shipper']);

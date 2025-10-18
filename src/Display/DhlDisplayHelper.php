@@ -1,9 +1,11 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Display;
 
 use DateTime;
 use ParcelTrack\TrackingResult;
+use ParcelTrack\Display\DhlTranslationService;
+use ParcelTrack\Helpers\Logger;
 
 class DhlDisplayHelper implements DisplayHelperInterface
 {
@@ -15,16 +17,17 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private DhlTranslationService $translationService;
 
     private static array $displayConfig = [
-        "Sender" => ["type" => "person", "path" => "origin"],
-        "Receiver" => ["type" => "person", "path" => "receiver"],
-        "Destination" => ["type" => "person", "path" => "destination"],
+        "Afzender" => ["type" => "person", "path" => "origin"],
+        "Ontvanger" => ["type" => "person", "path" => "receiver"],
+        "Bestemming" => ["type" => "person", "path" => "destination"],
         "Shipper Name" => "shipper.name",
-        "Type" => "destination.type",
-        "Map" => ["path" => "destination", "type" => "map_link"],
-        "Opening Hours" => ["type" => "opening_hours_dhl", "path" => "destination.openingTimes"],
-        "Closed" => ["type" => "closure_periods", "path" => "destination.closurePeriods"],
-        "Dimensions" => ["type" => "dimensions_dhl", "path" => "length"],
-        "Weight" => ["type" => "weight_dhl", "path" => "weight"],
+        "Bezorglocatie" => ["type" => "lookupType", "path"=>"destination.type"],
+        "DHL Produkt" => "product.description",
+        "Kaart" => ["path" => "destination", "type" => "map_link"],
+        "Open" => ["type" => "opening_hours_dhl", "path" => "destination.openingTimes"],
+        "Gesloten" => ["type" => "closure_periods", "path" => "destination.closurePeriods"],
+        "Afmetingen" => ["type" => "dimensions_dhl", "path" => "length"],
+        "Gewicht" => ["type" => "weight_dhl", "path" => "weight"],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
@@ -35,6 +38,14 @@ class DhlDisplayHelper implements DisplayHelperInterface
         $this->translationService = new DhlTranslationService($logger);
         $raw = json_decode($package->rawResponse);
         $this->details = (is_array($raw) && isset($raw[0])) ? $raw[0] : new \stdClass();
+    }
+
+     private function lookupType( $type ) {
+        $types = [
+            "ADDRESS" => "Een Adres",
+            "PARCEL_STATION" => "Pakketautomaat"
+        ];
+        return array_key_exists($type, $types) ? $types[$type] : $type;
     }
 
     public function getDisplayData(): array
@@ -60,7 +71,7 @@ class DhlDisplayHelper implements DisplayHelperInterface
 
     private function generateTrackUrl(): string
     {
-        $postalCode = $this->details->destination->address->postalCode ?? '';
+        $postalCode = $this->package->postalCode ?? '';
         return "https://www.dhlparcel.nl/nl/volg-uw-zending-0?tt={$this->package->trackingCode}&pc={$postalCode}";
     }
 
@@ -111,6 +122,9 @@ class DhlDisplayHelper implements DisplayHelperInterface
                         case 'address':
                             $value = implode(', ', $this->formatAddress($value, true));
                             break;
+                        case 'lookupType':
+                            $value = $this->lookupType($value);
+                            break;
                         case 'map_link': // Find first available geo location from events
                             $lat = 0; // Default to 0 as per test expectation
                             $lon = 0; // Default to 0 as per test expectation
@@ -150,7 +164,7 @@ class DhlDisplayHelper implements DisplayHelperInterface
                             $value = sprintf('%.2f kg', $value);
                             break;
                         default:
-                            $this->logger->log("Unknown type '{$spec['type']}' for label '{$label}'", Logger::DEBUG);
+                            $this->logger->log("Unknown type '{".$spec['type']."}' for label '{$label}'", Logger::DEBUG);
                             break;
                     }
                 }

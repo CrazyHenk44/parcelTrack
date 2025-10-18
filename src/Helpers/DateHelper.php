@@ -1,6 +1,6 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Helpers;
 
 use DateTime;
 

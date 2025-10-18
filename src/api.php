@@ -6,14 +6,12 @@ if (php_sapi_name() !== 'cli') {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use ParcelTrack\Logger;
-use ParcelTrack\StorageService;
-use ParcelTrack\DhlDisplayHelper;
-use ParcelTrack\PostNLDisplayHelper;
-use ParcelTrack\ShipperFactory;
-use ParcelTrack\Config;
-use ParcelTrack\ShipperConstants; // Import ShipperConstants
-use ParcelTrack\PackageSorter;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Helpers\StorageService;
+use ParcelTrack\Shipper\ShipperFactory;
+use ParcelTrack\Helpers\Config;
+use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Helpers\PackageSorter;
 
 $testDataPath = $_GET['test_data_path'] ?? null;
 

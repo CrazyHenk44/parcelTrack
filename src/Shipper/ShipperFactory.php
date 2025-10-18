@@ -1,16 +1,21 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Shipper;
 
 use ParcelTrack\Shipper\DhlShipper;
 use ParcelTrack\Shipper\PostNLShipper;
 use ParcelTrack\Shipper\Ship24Shipper;
 use ParcelTrack\Shipper\YunExpressShipper;
-use ParcelTrack\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Display\DisplayHelperInterface;
+use ParcelTrack\Display\DhlDisplayHelper;
+use ParcelTrack\Display\PostNLDisplayHelper;
+use ParcelTrack\Display\Ship24DisplayHelper;
+use ParcelTrack\Display\YunExpressDisplayHelper;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Helpers\Config;
+use ParcelTrack\TrackingResult;
+use ParcelTrack\ShipperInterface;
 
-/**
- * Factory class for creating shipper instances.
- */
 class ShipperFactory
 {
     private Logger $logger;
@@ -24,17 +29,17 @@ class ShipperFactory
 
     public function create(string $shipperName): ?ShipperInterface
     {
-        switch ($shipperName) { // Use raw shipperName, not lowercase
-            case ShipperConstants::DHL:
+        switch ($shipperName) {
+            case \ParcelTrack\Shipper\ShipperConstants::DHL:
                 return new DhlShipper($this->logger);
-            case ShipperConstants::POSTNL:
+            case \ParcelTrack\Shipper\ShipperConstants::POSTNL:
                 return new PostNLShipper($this->logger);
-            case ShipperConstants::SHIP24:
+            case \ParcelTrack\Shipper\ShipperConstants::SHIP24:
                 if ($this->config->isShip24Enabled()) {
                     return new Ship24Shipper($this->logger, $this->config->ship24ApiKey);
                 }
                 return null;
-            case ShipperConstants::YUNEXPRESS:
+            case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
                 return new YunExpressShipper();
             default:
                 return null;
@@ -43,17 +48,16 @@ class ShipperFactory
 
     public function createDisplayHelper(TrackingResult $package): ?DisplayHelperInterface
     {
-        $shipperName = ($package->shipper); // Use raw shipper name from package
+        $shipperName = ($package->shipper);
 
         switch ($shipperName) {
-            case ShipperConstants::DHL:
-                $dhlShipper = new DhlShipper($this->logger);
+            case \ParcelTrack\Shipper\ShipperConstants::DHL:
                 return new DhlDisplayHelper($package, $this->logger);
-            case ShipperConstants::POSTNL:
+            case \ParcelTrack\Shipper\ShipperConstants::POSTNL:
                 return new PostNLDisplayHelper($package, $this->logger);
-            case ShipperConstants::SHIP24:
+            case \ParcelTrack\Shipper\ShipperConstants::SHIP24:
                 return new Ship24DisplayHelper($package, $this->logger);
-            case ShipperConstants::YUNEXPRESS:
+            case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
                 return new YunExpressDisplayHelper($package, $this->logger);
             default:
                 return null;

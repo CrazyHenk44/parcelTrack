@@ -3,12 +3,12 @@
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use ParcelTrack\PackageStatus;
-use ParcelTrack\Logger;
-use ParcelTrack\StorageService;
-use ParcelTrack\ShipperFactory;
-use ParcelTrack\Config;
-use ParcelTrack\DateHelper;
-use ParcelTrack\ShipperConstants;
+use ParcelTrack\Shipper\ShipperFactory;
+use ParcelTrack\Shipper\ShipperConstants;
+use ParcelTrack\Helpers\Config;
+use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Helpers\StorageService;
 
 $config = new Config();
 $logger = new Logger($config->logLevel);
@@ -69,9 +69,9 @@ foreach ($packagesToProcess as $existingResult) {
         // Send an email if the status text has changed or if mailing is forced, and no-mail option is not set.
         if (($statusChanged || $force) && !$noMail) {
             if ($statusChanged) {
-                $logger->log("Status changed for {$trackingCode}: {$oldStatus} -> {$newResult->status}", Logger::INFO);
+                $logger->log("Status changed for {$trackingCode}: {$oldStatus} -> {$newResult->packageStatus}", Logger::INFO);
             } else {
-                $logger->log("Force-mailing status for {$trackingCode} (status unchanged: {$newResult->status})", Logger::INFO);
+                $logger->log("Force-mailing status for {$trackingCode} (status unchanged: {$newResult->packageStatus})", Logger::INFO);
             }
 
             // Email notification logic
@@ -90,7 +90,7 @@ foreach ($packagesToProcess as $existingResult) {
 
             $body .= "<p><b>Vervoerder:</b> {$newResult->shipper}<br>\r\n";
             $body .= "<b>Trackingcode:</b> {$newResult->trackingCode}<br>\r\n";
-            $body .= "<b>Status:</b> {$newResult->status}</p>\r\n";
+            $body .= "<b>Status:</b> {$newResult->packageStatus}</p>\r\n";
 
             if ($newResult->eta) $body .= "<p><b>" . $newResult->eta . "</b></p>\r\n";
 
@@ -109,7 +109,7 @@ foreach ($packagesToProcess as $existingResult) {
                     $eventTimestamp = DateHelper::formatDutchDate($event->timestamp);
                     $locationInfo = $event->location ? " @ {$event->location}" : "";
                     $body .= "<li>[{$eventTimestamp}] {$event->description}{$locationInfo}</li>\r\n";
-                } 
+                }
                 $body .= "</ul>\r\n";
                 if (count($sortedEvents) > 5) {
                     $body .= "<p>...en meer.</p>\r\n";
@@ -120,13 +120,13 @@ foreach ($packagesToProcess as $existingResult) {
 
             // Shipper Web Interface Link
             $shipperLink = '';
-            if ($newResult->shipper === \ParcelTrack\ShipperConstants::DHL) {
+            if ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::DHL) {
                 $shipperLink = "https://www.dhlparcel.nl/nl/volg-uw-zending-0?tt={$newResult->trackingCode}&pc={$newResult->postalCode}";
-            } elseif ($newResult->shipper === \ParcelTrack\ShipperConstants::POSTNL) {
+            } elseif ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::POSTNL) {
                 $country = 'NL'; // Assuming NL for PostNL
                 $postalCode = $newResult->postalCode ?? 'UNKNOWN';
                 $shipperLink = "https://jouw.postnl.nl/track-and-trace/trackingcode/{$newResult->trackingCode}/{$country}/{$postalCode}";
-            } elseif ($newResult->shipper === \ParcelTrack\ShipperConstants::SHIP24) {
+            } elseif ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::SHIP24) {
                 $shipperLink = "https://www.ship24.com/tracking?nums={$newResult->trackingCode}";
             }
             if ($shipperLink) {

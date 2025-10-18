@@ -9,6 +9,9 @@ This section summarizes the current state of the application and key technical d
 ### Project Structure
 
 -   **`src/`**: Contains all PHP source code under the `ParcelTrack` namespace.
+	- **`src/Display/`**: Display-related helpers and utilities. All display helpers (DHL, PostNL, Ship24, YunExpress), the `DisplayHelperTrait` and the `DisplayHelperInterface` are located here. The `DhlTranslationService` that fetches and caches DHL translation files has been moved into this folder as it is only used by display formatting.
+	- **`src/Shipper/`**: Shipper implementations and related artifacts. `ShipperFactory`, `ShipperConstants`, and `ShipperInterface` are located here along with per-shipper implementations (`DhlShipper`, `PostNLShipper`, `Ship24Shipper`, `YunExpressShipper`).
+    - **`src/Helpers/`**: Some simple helpers for common tasks. 
 -   **`data/`**: Stores the JSON files for each tracked package.
 -   **`translations/`**: Caches the translation file from the DHL API to reduce external requests.
 -   **`web/`**: Contains the frontend application (`index.html`, `style.css`, `script.js`, etc.).

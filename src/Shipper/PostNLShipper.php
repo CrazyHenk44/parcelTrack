@@ -3,12 +3,12 @@
 namespace ParcelTrack\Shipper;
 
 use ParcelTrack\Event;
-use ParcelTrack\Logger;
-use ParcelTrack\ShipperInterface;
-use ParcelTrack\DateHelper;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Shipper\ShipperInterface;
+use ParcelTrack\Helpers\DateHelper;
 use ParcelTrack\TrackingResult;
 use GuzzleHttp\Client;
-use ParcelTrack\ShipperConstants;
+use ParcelTrack\Shipper\ShipperConstants;
 
 class PostNLShipper implements ShipperInterface
 {

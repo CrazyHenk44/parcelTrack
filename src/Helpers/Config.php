@@ -1,6 +1,6 @@
 <?php
 
-namespace ParcelTrack;
+namespace ParcelTrack\Helpers;
 
 /**
  * Manages application configuration from environment variables.
@@ -15,7 +15,7 @@ class Config
 
     public function __construct()
     {
-        $this->logLevel = getenv('LOG_LEVEL') ?: 'INFO'; // Original line
+        $this->logLevel = getenv('LOG_LEVEL') ?: 'INFO';
         $this->defaultEmail = getenv('DEFAULT_EMAIL') ?: null;
         $this->parcelTrackUrl = getenv('PARCELTRACK_URL') ?: null;
         $this->smtpFrom = getenv('SMTP_FROM') ?: null;

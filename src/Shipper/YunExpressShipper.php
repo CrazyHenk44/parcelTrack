@@ -3,9 +3,9 @@
 namespace ParcelTrack\Shipper;
 
 use ParcelTrack\Event;
-use ParcelTrack\ShipperInterface;
+use ParcelTrack\Shipper\ShipperInterface;
 use ParcelTrack\TrackingResult;
-use ParcelTrack\ShipperConstants;
+use ParcelTrack\Shipper\ShipperConstants;
 
 class YunExpressShipper implements ShipperInterface
 {
