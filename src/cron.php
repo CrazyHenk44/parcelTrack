@@ -144,7 +144,7 @@ foreach ($packagesToProcess as $existingResult) {
                 }
                 if (($package->metadata->contactEmail ?? $config->defaultEmail) === $recipient && $package->metadata->status->value === 'active') {
                     $displayName = $package->metadata->customName ?? "{$package->shipper} - {$package->trackingCode}";
-                    $otherPackagesHtml .= "<li><b>{$displayName}:</b> {$package->status}</li>";
+                    $otherPackagesHtml .= "<li><b>{$displayName}:</b> {$package->packageStatus}</li>";
                 }
             }
 

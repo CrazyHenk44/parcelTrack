@@ -6,6 +6,7 @@ use ParcelTrack\Shipper\DhlShipper;
 use ParcelTrack\Shipper\PostNLShipper;
 use ParcelTrack\Shipper\Ship24Shipper;
 use ParcelTrack\Shipper\YunExpressShipper;
+use ParcelTrack\Shipper\ShipperInterface;
 use ParcelTrack\Display\DisplayHelperInterface;
 use ParcelTrack\Display\DhlDisplayHelper;
 use ParcelTrack\Display\PostNLDisplayHelper;
@@ -14,7 +15,6 @@ use ParcelTrack\Display\YunExpressDisplayHelper;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Helpers\Config;
 use ParcelTrack\TrackingResult;
-use ParcelTrack\ShipperInterface;
 
 class ShipperFactory
 {
