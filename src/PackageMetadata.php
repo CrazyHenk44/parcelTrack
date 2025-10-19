@@ -8,7 +8,8 @@ class PackageMetadata
         public ?string $customName = null,
         public PackageStatus $status = PackageStatus::Active,
         public ?string $contactEmail = null
-    ) {}
+    ) {
+    }
 
     public static function fromObject(\stdClass $data): self
     {

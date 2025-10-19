@@ -49,6 +49,7 @@ The application is configured via environment variables. Create a `.env` file in
 |-------------------|--------------------------------------------------------------------------|---------------------------------------|
 | `PARCELTRACK_URL` | The public URL of your ParcelTrack instance for links in emails.         | `http://parcels.example.com`          |
 | `DEFAULT_EMAIL`   | The default email address to send notifications to.                      | `you@example.com`                     |
+| `DEFAULT_COUNTRY`   | The country that packages most likely go to, 2 letters                 | `NL`                     |
 | `LOG_LEVEL`       | The minimum log level to output (`DEBUG`, `INFO`, `ERROR`).              | `INFO`                                |
 | `SHIP24_API_KEY`  | (Optional) Your API key for Ship24. If provided, enables Ship24 tracking.| `apik_...`                            |
 | `SMTP_HOST`       | Your SMTP server hostname.                                               | `smtp.mailgun.org`                    |

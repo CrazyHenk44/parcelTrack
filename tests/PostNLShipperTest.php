@@ -5,7 +5,6 @@ declare(strict_types=1);
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Shipper\PostNLShipper;
@@ -24,11 +23,11 @@ class PostNLShipperTest extends TestCase
     public function testFetch(): void
     {
         $trackingCode = '3SPOSTNLEXAMPLE';
-        $postalCode = '1234AB';
-        $country = 'NL';
+        $postalCode   = '1234AB';
+        $country      = 'NL';
 
         // The raw response is embedded inside the saved JSON file.
-        $trackingData = json_decode(file_get_contents(__DIR__ .  '/data/PostNL_3SPOSTNLEXAMPLE.json'));
+        $trackingData = json_decode(file_get_contents(__DIR__ . '/data/PostNL_3SPOSTNLEXAMPLE.json'));
         $responseBody = json_encode($trackingData);
 
         $mock = new MockHandler([
@@ -36,10 +35,10 @@ class PostNLShipperTest extends TestCase
         ]);
 
         $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack, 'http_errors' => false]);
+        $client       = new Client(['handler' => $handlerStack, 'http_errors' => false]);
 
         $shipper = new PostNLShipper($this->logger, $client);
-        $result = $shipper->fetch($trackingCode, $postalCode, $country);
+        $result  = $shipper->fetch($trackingCode, ['postalCode' => $postalCode, 'country' => $country]);
 
         // Assertions for the TrackingResult object
         $this->assertInstanceOf(\ParcelTrack\TrackingResult::class, $result);

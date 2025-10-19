@@ -2,9 +2,8 @@
 
 namespace ParcelTrack\Display;
 
-use DateTime;
-use ParcelTrack\TrackingResult;
 use ParcelTrack\Helpers\Logger;
+use ParcelTrack\TrackingResult;
 
 class PostNLDisplayHelper implements DisplayHelperInterface
 {
@@ -15,48 +14,48 @@ class PostNLDisplayHelper implements DisplayHelperInterface
     private object $details;
 
     private static array $displayConfig = [
-        "Status" => ["type" => "status", "path" => "statusPhase.message"],
-        "Recipient" => ["type" => "person", "path" => "recipient"],
-        "Sender" => ["type" => "person", "path" => "sender"],
-        "Weight" => ["type" => "weight", "path" => "details.dimensions.weight"],
-        "Dimensions" => ["type" => "dimensions", "path" => "details.dimensions"],
-        "Retail Location" => ["type" => "address", "path" => "retailDeliveryLocation.address"],
-        "Map Link" => ["type" => "map_link", "path" => "retailDeliveryLocation.coordinate"],
-        "Opening Hours" => ["type" => "opening_hours", "path" => "retailDeliveryLocation.businessHours"],
+        'Status'          => ['type' => 'status', 'path' => 'statusPhase.message'],
+        'Recipient'       => ['type' => 'person', 'path' => 'recipient'],
+        'Sender'          => ['type' => 'person', 'path' => 'sender'],
+        'Weight'          => ['type' => 'weight', 'path' => 'details.dimensions.weight'],
+        'Dimensions'      => ['type' => 'dimensions', 'path' => 'details.dimensions'],
+        'Retail Location' => ['type' => 'address', 'path' => 'retailDeliveryLocation.address'],
+        'Map Link'        => ['type' => 'map_link', 'path' => 'retailDeliveryLocation.coordinate'],
+        'Opening Hours'   => ['type' => 'opening_hours', 'path' => 'retailDeliveryLocation.businessHours'],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
-        $this->config = self::$displayConfig;
+        $this->config  = self::$displayConfig;
         $this->setLogger($logger); // Set logger for the trait
 
-        $raw = json_decode($package->rawResponse);
+        $raw           = json_decode($package->rawResponse);
         $this->details = $raw->colli->{$package->trackingCode} ?? new \stdClass();
     }
 
     public function getDisplayData(): array
     {
         return [
-            'shipper' => $this->package->shipper,
-            'trackingCode' => $this->package->trackingCode,
-            'postalCode' => $this->package->getPostalCode(),
-            'packageStatus' => $this->package->packageStatus,
+            'shipper'           => $this->package->shipper,
+            'trackingCode'      => $this->package->trackingCode,
+            'postalCode'        => $this->package->getPostalCode(),
+            'packageStatus'     => $this->package->packageStatus,
             'packageStatusDate' => $this->package->packageStatusDate,
-            'customName' => $this->package->metadata->customName,
-            'events' => $this->package->events,
-            'metadata' => [
-                'status' => $this->package->metadata->status->value,
+            'customName'        => $this->package->metadata->customName,
+            'events'            => $this->package->events,
+            'metadata'          => [
+                'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl' => $this->generateTrackUrl(),
+            'trackUrl'         => $this->generateTrackUrl(),
             'formattedDetails' => $this->formatDetails(),
         ];
     }
 
     private function generateTrackUrl(): string
     {
-        $country = $this->details->recipient->address->country ?? 'NL';
+        $country    = $this->details->recipient->address->country    ?? 'NL';
         $postalCode = $this->details->recipient->address->postalCode ?? '';
         return "https://jouw.postnl.nl/track-and-trace/{$this->package->trackingCode}/{$country}/{$postalCode}";
     }
@@ -66,9 +65,9 @@ class PostNLDisplayHelper implements DisplayHelperInterface
         $formatted = [];
 
         $labelTranslations = [
-            'Recipient' => 'Ontvanger',
-            'Sender' => 'Afzender',
-            'Weight' => 'Gewicht',
+            'Recipient'  => 'Ontvanger',
+            'Sender'     => 'Afzender',
+            'Weight'     => 'Gewicht',
             'Dimensions' => 'Afmetingen',
         ];
 
@@ -86,13 +85,13 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                 if ($value !== null) {
                     switch ($spec['type']) {
                         case 'person':
-                            $name = $value->names->personName ?? null;
-                            $company = $value->names->companyName ?? null;
+                            $name         = $value->names->personName  ?? null;
+                            $company      = $value->names->companyName ?? null;
                             $displayNames = array_filter([$name, $company]);
-                            $value = implode(', ', $displayNames);
+                            $value        = implode(', ', $displayNames);
 
                             $addressPath = $spec['path'] . '.address';
-                            $address = $this->getValue($this->details, $addressPath);
+                            $address     = $this->getValue($this->details, $addressPath);
                             if ($address) {
                                 $addressParts = $this->formatAddress($address, true);
                                 $value .= ', ' . implode(', ', $addressParts);
@@ -117,24 +116,24 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                             break;
                         case 'opening_hours':
                             if ($value) {
-                                $lines = [];
+                                $lines  = [];
                                 $dayMap = [1 => 'ma', 2 => 'di', 3 => 'wo', 4 => 'do', 5 => 'vr', 6 => 'za', 0 => 'zo'];
                                 foreach ($value as $day) {
                                     $dayName = $dayMap[$day->day] ?? '';
-                                    $hours = array_map(fn($h) => sprintf('%s - %s', $h->from, $h->to), $day->hours);
+                                    $hours   = array_map(fn ($h) => sprintf('%s - %s', $h->from, $h->to), $day->hours);
                                     $lines[] = sprintf('%s: %s', $dayName, implode(', ', $hours));
                                 }
-                                $value = implode("<br>", $lines);
+                                $value = implode('<br>', $lines);
                             }
                             break;
                         default:
-                            $this->logger->log("Unknown type '{".$spec['type']."}' for label '{$label}'", Logger::DEBUG);
+                            $this->logger->log("Unknown type '{" . $spec['type'] . "}' for label '{$label}'", Logger::DEBUG);
                             break;
                     }
                 }
             }
             if ($value) {
-                $translatedLabel = $labelTranslations[$label] ?? $label;
+                $translatedLabel             = $labelTranslations[$label] ?? $label;
                 $formatted[$translatedLabel] = $value;
             }
         }

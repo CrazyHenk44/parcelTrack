@@ -12,7 +12,7 @@ class DhlTranslationService
 
     public function __construct(Logger $logger)
     {
-        $this->logger = $logger;
+        $this->logger          = $logger;
         $this->translationFile = __DIR__ . '/../../translations/dhl_nl_NL.json';
     }
 
@@ -45,8 +45,8 @@ class DhlTranslationService
     public function translate(string $section, string $key): string
     {
         $translations = $this->getTranslations();
-        $parts = explode('.', $section);
-        $value = $translations;
+        $parts        = explode('.', $section);
+        $value        = $translations;
         foreach ($parts as $part) {
             if (!isset($value[$part])) {
                 return $key;

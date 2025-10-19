@@ -1,495 +1,777 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const packageListEl = document.getElementById('package-list');
-    const detailPlaceholderEl = document.getElementById('detail-placeholder');
-    const detailContentEl = document.getElementById('detail-content');
-    const detailContainer = document.getElementById('detail-container');
-    const eventListEl = document.getElementById('event-list');
-    const detailSummaryContainer = document.getElementById('detail-summary-container');
-    const detailTitleEl = document.getElementById('detail-title');
-    const toggleDetailsBtn = document.getElementById('toggle-details-btn');
-    const refreshBtn = document.getElementById('refresh-btn');
-    const detailDeleteBtn = document.getElementById('detail-delete-btn');
-    const detailWebLinkEl = document.getElementById('detail-weblink');
-    const backToListBtn = document.getElementById('back-to-list-btn');
+(() => {
+  // App data populated from API
+  let PACKAGES = []
+  let HISTORY = {}
 
-    const addPackageBtn = document.getElementById('add-package-btn');
-    const addPackageModal = document.getElementById('add-package-modal');
-    const closeModalBtn = addPackageModal.querySelector('.close-button');
-    const addPackageForm = document.getElementById('add-package-form');
-    const formMessageEl = document.getElementById('form-message');
+  // DOM refs
+  const listEl = document.getElementById('pt-package-list')
+  const filterEl = document.getElementById('pt-filter')
+  const detailContainer = document.getElementById('pt-detail-container')
+  const detailTitle = document.getElementById('pt-detail-title')
+  const historyList = document.getElementById('pt-history-list')
+  const detailsBody = document.getElementById('pt-details-body')
+  const backBtn = document.getElementById('pt-back')
+  const themeToggleBtn = document.getElementById('pt-theme-toggle')
 
-    const combinedActions = document.getElementById('combined-actions');
+  let selectedId = null
+  // map of id -> full package object from API
+  const serverPackages = {}
+  // config-driven defaults (populated from API)
+  let defaultEmail = ''
+  let defaultCountry = 'NL'
 
-    let allPackages = [];
-    let selectedPackage = null;
-    let defaultEmail = '';
+  function formatDutchDateIso(iso){
+    if(!iso) return ''
+    try{
+      const d = new Date(iso)
+      if(isNaN(d)) return iso
+      const opts = {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}
+      return d.toLocaleString('nl-NL', opts).replace('.',':')
+    }catch(e){return iso}
+  }
 
-    const SHIPPER_DHL = 'DHL';
-    const SHIPPER_POSTNL = 'PostNL';
-    const SHIPPER_SHIP24 = 'Ship24';
+  // update Activate button label depending on selected package metadata
+  function updateActivateLabel(){
+    const activateBtn = document.getElementById('pt-activate')
+    if(!activateBtn) return
+    if(!selectedId) { activateBtn.textContent = 'Activate'; return }
+    const pkg = serverPackages[selectedId]
+    const cur = pkg && pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
+    activateBtn.textContent = cur === 'active' ? 'Deactivate' : 'Activate'
+  }
 
-    function getShipperTextElement(shipper) {
-        if (!shipper) return '';
-        const key = shipper.toString().toUpperCase();
-        if (key === SHIPPER_DHL.toUpperCase()) return `<img src="images/dhl-logo.png" alt="DHL" class="shipper-logo">`;
-        if (key === SHIPPER_POSTNL.toUpperCase()) return `<img src="images/postnl-logo.png" alt="PostNL" class="shipper-logo">`;
-        return `<span class="shipper-text">${shipper}</span>`;
+  function renderList(filter = ''){
+    listEl.innerHTML = ''
+    const f = filter.trim().toLowerCase()
+    PACKAGES.filter(p => !f || (p.title + ' ' + p.shipper + ' ' + p.code).toLowerCase().includes(f)).forEach(p => {
+      const li = document.createElement('li')
+      li.className = 'pt-package-item' + (p.inactive ? ' inactive' : '') + (p.id===selectedId? ' selected':'')
+      li.dataset.id = p.id
+
+      li.innerHTML = `
+        <div class="pt-edit">✎</div>
+        <div style="flex:1">
+          <div class="pt-package-title">${p.title} <span class="muted" style="font-weight:600;margin-left:8px;font-family:monospace">${p.shipper}</span></div>
+          <div class="pt-package-sub">${p.status} • <span class="muted">${p.code}</span></div>
+        </div>
+      `
+
+      li.addEventListener('click', ()=>selectPackage(p.id))
+      // edit name handler (prompt-based)
+      const editBtn = li.querySelector('.pt-edit')
+      if(editBtn){
+        editBtn.addEventListener('click', (ev)=>{
+          ev.stopPropagation()
+          const server = serverPackages[p.id]
+          const current = server && (server.customName || '') || p.title
+          const newName = prompt('Nieuwe naam voor pakket (leeg = verwijder)', current) // dutch prompt
+          if(newName !== null){
+            // send PUT to update customName
+            const shipper = server ? server.shipper : p.shipper
+            const trackingCode = server ? (server.trackingCode || server.code) : p.code
+            apiPut({shipper, trackingCode, customName: newName.trim() ? newName.trim() : ''}).then(()=>loadPackagesFromApi())
+          }
+        })
+      }
+      listEl.appendChild(li)
+    })
+  }
+
+  // API helpers
+  async function apiPut(body){
+    try{
+      const r = await fetch('api.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+      if(!r.ok) throw new Error('Network error')
+      return await r.json()
+    }catch(e){ console.error('PUT failed', e); throw e }
+  }
+
+  async function apiDelete(body){
+    try{
+      const r = await fetch('api.php', {method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
+      if(!r.ok) throw new Error('Network error')
+      return await r.json()
+    }catch(e){ console.error('DELETE failed', e); throw e }
+  }
+
+  function selectPackage(id){
+    selectedId = id
+    renderList(filterEl.value)
+  const pkg = PACKAGES.find(p=>p.id===id)
+    detailTitle.textContent = pkg.title
+    renderHistory(id)
+    renderDetails(id)
+    updateActivateLabel()
+    // show detail on mobile
+    detailContainer.setAttribute('aria-hidden','false')
+    detailContainer.classList.add('show')
+  }
+
+  function renderHistory(id){
+    historyList.innerHTML = ''
+    // prefer server-provided events
+    const pkg = serverPackages[id]
+  const events = (pkg && pkg.events && pkg.events.slice()) || (HISTORY[id]||[])
+    // If server provides packageStatus, render a prominent status box at the top of history
+    if(pkg && pkg.packageStatus){
+      const statusBox = document.createElement('div')
+      statusBox.className = 'pt-history-status'
+      const when = pkg.packageStatusDate ? formatDutchDateIso(pkg.packageStatusDate) : ''
+      statusBox.innerHTML = `<div class="pt-h-status">${pkg.packageStatus}</div>${when? `<div class="pt-h-date">${when}</div>` : ''}`
+      historyList.appendChild(statusBox)
     }
+    // ensure newest first (server provides timestamps)
+    events.sort((a,b)=>{
+      const ta = new Date(a.timestamp || a.when || 0).getTime()
+      const tb = new Date(b.timestamp || b.when || 0).getTime()
+      return tb - ta
+    })
+    events.forEach(ev=>{
+      const d = document.createElement('div')
+      d.className = 'pt-history-item'
+      const when = ev.timestamp ? formatDutchDateIso(ev.timestamp) : (ev.when || '')
+      const where = ev.location || ev.where || ''
+      d.innerHTML = `<div class="muted" style="font-size:0.85rem">${when}</div><div style="margin-top:6px">${ev.description || ev.text || ''}</div><div class="muted" style="font-size:0.85rem;margin-top:6px">${where||''}</div>`
+      historyList.appendChild(d)
+    })
+  }
 
-    function formatDutchDate(dateString) {
-        const date = new Date(dateString);
-        const day = date.getDate();
-        const monthIndex = date.getMonth();
-        const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-        const month = months[monthIndex];
-        const hours = date.getHours().toString().padStart(2, '0');
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        return `${day} ${month}, ${hours}.${minutes}u`;
-    }
-
-    async function fetchData() {
-        try {
-            const response = await fetch('api.php');
-            const data = await response.json();
-
-            allPackages = data.packages || [];
-            defaultEmail = data.defaultEmail || '';
-
-            const ship24Option = document.querySelector('#shipper option[value="ship24"]');
-            if (ship24Option && !data.isShip24Enabled) {
-                ship24Option.remove();
-            }
-
-            // Set the placeholder in the form
-            const emailInput = document.getElementById('contactEmail');
-            if (emailInput && defaultEmail) {
-                emailInput.placeholder = `Defaults to ${defaultEmail}`;
-            }
-
-            buildPackageList();
-            const selectedPackageStillExists = selectedPackage && allPackages.some(p => p.trackingCode === selectedPackage.trackingCode && p.shipper === selectedPackage.shipper);
-
-            if (selectedPackage && !selectedPackageStillExists) {
-                clearDetailView();
-            } else if (selectedPackageStillExists) {
-                const updatedSelectedPackage = allPackages.find(p => p.trackingCode === selectedPackage.trackingCode && p.shipper === selectedPackage.shipper);
-                selectedPackage = updatedSelectedPackage;
-                updateDetailView(updatedSelectedPackage);
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            packageListEl.innerHTML = '<p>Fout bij het laden van pakketten.</p>';
+  function renderDetails(id){
+    // prefer server package details when available
+    const serverPkg = serverPackages[id]
+    if(serverPkg){
+      detailsBody.innerHTML = ''
+      // top header with shipper and tracking
+      const header = document.createElement('div')
+      header.style.display = 'flex'
+      header.style.gap = '12px'
+      header.style.alignItems = 'center'
+      header.innerHTML = `<div style="font-weight:700">${serverPkg.shipper}</div><div class="muted">Tracking: <span style="font-family:monospace">${serverPkg.trackingCode || serverPkg.code || ''}</span></div>`
+      detailsBody.appendChild(header)
+      // formatted details (may contain HTML)
+      if(serverPkg.formattedDetails){
+        const fd = document.createElement('div')
+        fd.style.marginTop = '12px'
+        for(const [label,value] of Object.entries(serverPkg.formattedDetails)){
+          const row = document.createElement('div')
+          row.className = 'pt-detail-field'
+          row.innerHTML = `<div class="label">${label}:</div><div class="value">${value}</div>`
+          fd.appendChild(row)
         }
+        detailsBody.appendChild(fd)
+      }
+    } else {
+      const pkg = PACKAGES.find(p=>p.id===id)
+      detailsBody.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="font-weight:700">${pkg.shipper}</div>
+        <div class="muted">Tracking: <span style="font-family:monospace">${pkg.code}</span></div>
+      </div>
+      <div style="margin-top:12px">Status: <strong>${pkg.status}</strong></div>
+    `
     }
+  }
 
-    async function saveParcelName(shipper, trackingCode, newName) {
-        try {
-            const response = await fetch('api.php', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    shipper: shipper,
-                    trackingCode: trackingCode,
-                    customName: newName
-                }),
-            });
-            const result = await response.json();
-            if (!result.success) {
-                console.error('Failed to save parcel name:', result.message);
-                alert('Niet gelukt om de naam op te slaan: ' + result.message);
-            }
-            fetchData();
-        } catch (error) {
-            console.error('Error saving parcel name:', error);
-            alert('Er is een onverwachte fout opgetreden bij het opslaan van de naam.');
-        }
+  // Filter
+  filterEl.addEventListener('input', e=>renderList(e.target.value))
+
+  // Back button (mobile)
+  backBtn.addEventListener('click', ()=>{
+    detailContainer.classList.remove('show')
+    detailContainer.setAttribute('aria-hidden','true')
+  })
+
+  // top bar reload
+  const reloadBtn = document.getElementById('pt-reload')
+  if(reloadBtn){ reloadBtn.addEventListener('click', ()=>{ loadPackagesFromApi() }) }
+
+  // delete and activate buttons in footer
+  const activateBtn = document.getElementById('pt-activate')
+  const deleteBtn = document.getElementById('pt-delete')
+  if(activateBtn){
+    const updateActivateLabel = ()=>{
+      if(!selectedId) return activateBtn.textContent = 'Activate'
+      const pkg = serverPackages[selectedId]
+      const cur = pkg && pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
+      activateBtn.textContent = cur === 'active' ? 'Deactivate' : 'Activate'
     }
+    activateBtn.addEventListener('click', async ()=>{
+      if(!selectedId) return alert('Selecteer eerst een pakket')
+      const pkg = serverPackages[selectedId]
+      const shipper = pkg ? pkg.shipper : null
+      const trackingCode = pkg ? (pkg.trackingCode || pkg.code) : null
+      if(!shipper || !trackingCode) return alert('Geen paketinformatie beschikbaar')
+      const cur = pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
+      const newStatus = cur === 'active' ? 'inactive' : 'active'
+      try{
+        await apiPut({shipper, trackingCode, status: newStatus})
+        await loadPackagesFromApi()
+      }catch(e){ alert('Kon status niet bijwerken') }
+    })
+    // refresh label when selection changes
+    document.addEventListener('selectionchange', updateActivateLabel)
+  }
+  if(deleteBtn){
+    deleteBtn.addEventListener('click', async ()=>{
+      if(!selectedId) return alert('Selecteer eerst een pakket')
+      if(!confirm('Weet je zeker dat je dit pakket wilt verwijderen?')) return
+      const pkg = serverPackages[selectedId]
+      const shipper = pkg ? pkg.shipper : null
+      const trackingCode = pkg ? (pkg.trackingCode || pkg.code) : null
+      if(!shipper || !trackingCode) return alert('Geen paketinformatie beschikbaar')
+      try{
+        await apiDelete({shipper, trackingCode})
+        selectedId = null
+        await loadPackagesFromApi()
+      }catch(e){ alert('Kon pakket niet verwijderen') }
+    })
+  }
 
-    function buildPackageList() {
-        packageListEl.innerHTML = '';
-        if (allPackages.length === 0) {
-            packageListEl.innerHTML = '<p>Geen pakketten gevonden.</p>';
-            return;
-        }
+  // Separator drag to resize panels on mobile only (vertical resize between history and details)
+  const separator = document.getElementById('pt-separator')
+  const historyPanel = document.getElementById('pt-history')
+  const detailsPanel = document.getElementById('pt-details')
 
-        allPackages.forEach(pkg => {
-            if (!pkg) return;
-            const item = document.createElement('div');
-            item.className = 'package-item';
-            if (pkg.metadata && pkg.metadata.status === 'inactive') {
-                item.classList.add('inactive');
-            }
+  function applySavedHistoryHeight(){
+    try{
+      const saved = localStorage.getItem('pt-history-height-pct')
+      if(saved && window.innerWidth <= 860){
+        const pct = parseFloat(saved)
+        const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
+        // apply explicit height and keep flex disabled on mobile so it persists
+        historyPanel.style.flex = 'none'
+        historyPanel.style.height = Math.round(containerHeight * pct / 100) + 'px'
+        try{ document.getElementById('pt-history-list').style.height = (historyPanel.getBoundingClientRect().height - 48) + 'px' }catch(e){}
+      }
+    }catch(e){}
+  }
 
-            item.dataset.trackingCode = pkg.trackingCode;
-            item.dataset.shipper = pkg.shipper;
+  if(separator && historyPanel && detailsPanel){
+    // enable mobile (vertical) resize using pointer events
+    function enableMobileResize(){
+      let dragging = false
+      let startY = 0
+      let startHeight = 0
 
-            const displayName = pkg.customName || `${pkg.shipper} - ${pkg.trackingCode}`;
+      function onMoveClient(y){
+        const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
+        const dy = y - startY
+        const newHeight = Math.max(80, Math.min(containerHeight - 80, startHeight + dy))
+  // apply height to both the panel and the scroll list for visibility
+  historyPanel.style.height = newHeight + 'px'
+  try{ document.getElementById('pt-history-list').style.height = (newHeight - 48) + 'px' }catch(e){}
+      }
 
-            item.innerHTML = `
-                <div class="package-item-header">
-                    <span class="edit-icon">&#9998;</span>
-                    <span class="editable-name" data-shipper="${pkg.shipper}" data-tracking-code="${pkg.trackingCode}">${displayName}</span>
-                    ${getShipperTextElement(pkg.shipper)}
-                </div>
-                <div class="package-item-status">${pkg.packageStatus}</div>
-            `;
-
-            const editIcon = item.querySelector('.edit-icon');
-            editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const editableNameSpan = item.querySelector('.editable-name');
-                const currentName = editableNameSpan.textContent;
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.value = currentName;
-                input.className = 'editable-name-input';
-                input.style.width = `${editableNameSpan.offsetWidth}px`;
-
-                editableNameSpan.replaceWith(input);
-                input.focus();
-
-                const saveEdit = () => {
-                    const newName = input.value.trim();
-                    if (newName !== currentName) {
-                        saveParcelName(pkg.shipper, pkg.trackingCode, newName);
-                    }
-                    input.replaceWith(editableNameSpan);
-                    editableNameSpan.textContent = newName || `${pkg.shipper} - ${pkg.trackingCode}`;
-                };
-
-                input.addEventListener('blur', saveEdit);
-                input.addEventListener('keypress', (event) => {
-                    if (event.key === 'Enter') {
-                        input.blur();
-                    }
-                });
-            });
-
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.package-item').forEach(el => el.classList.remove('selected'));
-                item.classList.add('selected');
-                selectedPackage = pkg;
-                updateDetailView(pkg);
-            });
-
-            packageListEl.appendChild(item);
-        });
-    }
-
-    function clearDetailView() {
-        detailPlaceholderEl.classList.remove('hidden');
-        detailContentEl.classList.add('hidden');
-        combinedActions.classList.add('hidden');
-        selectedPackage = null;
-        document.querySelectorAll('.package-item').forEach(el => el.classList.remove('selected'));
-        if (window.innerWidth <= 768) {
-            document.body.classList.remove('mobile-details-visible');
-        }
-    }
-
-    function updateDetailView(pkg) {
-        const detailSummaryContainer = document.getElementById('detail-summary-container');
-        const eventListContainer = document.getElementById('event-list-container');
-
-        if (window.innerWidth > 768) {
-            detailSummaryContainer.classList.remove('hidden');
-            eventListContainer.classList.remove('full-width');
-            eventListContainer.style.width = '50%';
-            detailSummaryContainer.style.width = '50%';
+      function pointerDown(e){
+        if(window.innerWidth > 860) return
+        e.preventDefault()
+  // separator down
+  dragging = true
+  startY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY) || 0
+  startHeight = historyPanel.getBoundingClientRect().height
+  // start values
+        // temporarily disable flex growth so explicit height is applied
+        try{
+          historyPanel.style.flex = 'none'
+          detailsPanel.style.flex = '1'
+          historyPanel.style.willChange = 'height'
+          // disabled flex on history panel
+        }catch(e){console.warn('[pt] failed to set flex', e)}
+        // prevent selection and pointer interactions on the scrolling list while dragging
+        document.body.classList.add('dragging')
+        try{ historyList.style.pointerEvents = 'none' }catch(e){}
+        // capture pointer to continue receiving events even if pointer leaves the separator
+        try{ if(e.pointerId) separator.setPointerCapture(e.pointerId) }catch(e){}
+        // attach move/up handlers
+        if(window.PointerEvent){
+          window.addEventListener('pointermove', pointerMove)
+          window.addEventListener('pointerup', pointerUp, {once:true})
         } else {
-            detailSummaryContainer.classList.add('hidden');
-            eventListContainer.classList.remove('hidden');
-            eventListContainer.classList.add('full-width');
-            eventListContainer.style.width = '100%';
-            toggleDetailsBtn.textContent = 'Details';
+          // fallback for older mobile browsers: touch events
+          window.addEventListener('touchmove', pointerMove, {passive:false})
+          window.addEventListener('touchend', pointerUp, {once:true})
         }
+      }
 
-        detailPlaceholderEl.classList.add('hidden');
-        detailContentEl.classList.remove('hidden');
-        eventListEl.innerHTML = '';
-        const detailSummaryEl = document.getElementById('detail-summary');
-        detailSummaryEl.innerHTML = '';
-        combinedActions.classList.add('hidden');
+      function pointerMove(e){
+        if(!dragging) return
+  // prevent page scrolling while dragging
+  if(e.preventDefault) e.preventDefault()
+  const clientY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY)
+        onMoveClient(clientY)
+      }
 
-        console.log('Updating details for package:', pkg);
-
-        if (pkg && pkg.trackingCode) {
-            detailTitleEl.textContent = pkg.customName || `${pkg.shipper} - ${pkg.trackingCode}`;
-            detailDeleteBtn.dataset.shipper = pkg.shipper;
-            detailDeleteBtn.dataset.trackingCode = pkg.trackingCode;
-        }
-
-        // Display packageStatus and packageStatusDate in a box at the top of the event list
-        if (pkg.packageStatus) {
-            const statusBox = document.createElement('div');
-            statusBox.style.textAlign = 'center'; // Center the status box
-
-            let statusHtml = '';
-            statusBox.className = 'eta-prominent';
-            statusHtml = `<h4>${pkg.packageStatus}</h4>`;
-            if (pkg.packageStatusDate) {
-                statusHtml += `<p>${formatDutchDate(pkg.packageStatusDate)}</p>`;
-            }
-            statusBox.innerHTML = statusHtml;
-            eventListEl.prepend(statusBox);
-        }
-
-        detailDeleteBtn.innerHTML = '<span role="img" aria-label="trash can">🗑️</span>';
-
-        if (pkg.trackUrl && pkg.trackUrl !== '#') {
-            detailWebLinkEl.href = pkg.trackUrl;
-            detailWebLinkEl.textContent = pkg.trackingCode;
-            detailWebLinkEl.classList.remove('hidden');
+      function pointerUp(e){
+  // separator up
+        dragging = false
+        document.body.classList.remove('dragging')
+        try{ historyList.style.pointerEvents = '' }catch(e){}
+  try{ if(e.pointerId && separator.releasePointerCapture) separator.releasePointerCapture(e.pointerId) }catch(e){}
+        // compute and persist percentage height
+        try{
+          const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
+          const appliedHeight = historyPanel.getBoundingClientRect().height
+          const pct = Math.round((appliedHeight / containerHeight) * 10000) / 100
+          localStorage.setItem('pt-history-height-pct', String(pct))
+          // on mobile keep explicit height (and flex:none) so the visual result persists
+          if(window.innerWidth <= 860){
+            try{
+              historyPanel.style.flex = 'none'
+              historyPanel.style.height = Math.round(containerHeight * pct / 100) + 'px'
+              try{ document.getElementById('pt-history-list').style.height = (historyPanel.getBoundingClientRect().height - 48) + 'px' }catch(e){}
+              // applied explicit height for mobile after release
+            }catch(e){console.warn('[pt] failed to apply mobile height', e)}
+          } else {
+            // restore flex behavior for larger screens
+            try{ historyPanel.style.flex = ''; historyPanel.style.willChange = ''; }catch(e){console.warn('[pt] failed to restore flex', e)}
+          }
+        }catch(e){console.warn('[pt] failed to persist height', e)}
+        if(window.PointerEvent){
+          window.removeEventListener('pointermove', pointerMove)
         } else {
-            detailWebLinkEl.classList.add('hidden');
+          window.removeEventListener('touchmove', pointerMove)
         }
+        try{
+          const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
+          const pct = Math.round((historyPanel.getBoundingClientRect().height / containerHeight) * 10000) / 100
+          localStorage.setItem('pt-history-height-pct', String(pct))
+        }catch(e){}
+      }
 
-        const sortedEvents = [...pkg.events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        // Add all events to history
-        sortedEvents.forEach(event => {
-            const item = document.createElement('div');
-            item.className = 'event-item';            
-            const ts = formatDutchDate(event.timestamp);
-            const location = event.location ? `<span class="event-location">@ ${event.location}</span>` : '';
-            item.innerHTML = `<div class="event-timestamp">${ts}</div><div class="event-description">${event.description}${location}</div>`;
-            eventListEl.appendChild(item);
-        });
-
-        if (pkg.formattedDetails) {
-            console.log('Formatted details:', pkg.formattedDetails);
-
-            for (const [label, value] of Object.entries(pkg.formattedDetails)) {
-                const item = document.createElement('div');
-                item.className = 'detail-field';
-                // The main package status is now handled by the dynamically created status box.
-                // Any 'Status' label in formattedDetails is likely a specific status milestone, not the main package status.
-                // So we display it as a regular detail field.
-                item.innerHTML = `<div class="detail-field-label">${label}:</div><div class="detail-field-value">${value}</div>`;
-                detailSummaryEl.appendChild(item);
-            }
-        }
-
-        if (pkg && pkg.metadata) {
-            const statusToggleButton = document.getElementById('status-toggle-btn');
-
-            const currentStatus = pkg.metadata.status || 'active';
-            statusToggleButton.textContent = currentStatus;
-            statusToggleButton.className = '';
-            statusToggleButton.classList.add(currentStatus);
-
-            const newBtn = statusToggleButton.cloneNode(true);
-            statusToggleButton.parentNode.replaceChild(newBtn, statusToggleButton);
-
-            newBtn.addEventListener('click', () => {
-                const latestStatus = pkg.metadata.status || 'active';
-                const newStatus = latestStatus === 'active' ? 'inactive' : 'active';
-                updatePackageStatus(pkg.shipper, pkg.trackingCode, newStatus);
-            });
-
-            combinedActions.classList.remove('hidden');
-        }
-
-        document.getElementById('detail-header').classList.remove('hidden');
-
-        if (window.innerWidth <= 768) {
-            document.body.classList.add('mobile-details-visible');
-        }
+      // wire both pointerdown and touchstart for maximum compatibility
+      if(window.PointerEvent){
+        separator.addEventListener('pointerdown', pointerDown)
+      } else {
+        separator.addEventListener('touchstart', pointerDown, {passive:false})
+        separator.addEventListener('mousedown', pointerDown)
+      }
     }
 
-    async function updatePackageStatus(shipper, trackingCode, newStatus) {
-        try {
-            const response = await fetch('api.php', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    shipper: shipper,
-                    trackingCode: trackingCode,
-                    status: newStatus
-                })
-            });
+    // apply saved height on load
+    applySavedHistoryHeight()
+    enableMobileResize()
 
-            const responseText = await response.text();
-            try {
-                const result = JSON.parse(responseText);
-                if (result.success) {
-                    fetchData();
-                } else {
-                    alert('Niet gelukt om de status bij te werken: ' + result.message);
-                }
-            } catch (jsonError) {
-                console.error('Error updating package status: Invalid JSON response.', jsonError);
-                console.error('Raw server response:', responseText);
-                alert('Er is een onverwachte fout opgetreden bij het bijwerken van de status (ongeldige server response).');
-            }
-        } catch (error) {
-            console.error('Error updating package status:', error);
-            alert('Er is een onverwachte fout opgetreden bij het bijwerken van de status.');
-        }
+    // also re-apply on resize (desktop <-> mobile)
+    window.addEventListener('resize', ()=>{
+      if(window.innerWidth > 860){
+        historyPanel.style.height = ''
+      } else {
+        applySavedHistoryHeight()
+      }
+    })
+  }
+
+  // Desktop vertical separator between package list and details
+  const vSeparator = document.getElementById('pt-v-separator')
+  const packageListContainer = document.querySelector('.pt-package-list-container')
+
+  function applySavedLeftWidth(){
+    try{
+      const saved = localStorage.getItem('pt-left-width-pct')
+      if(saved && window.innerWidth > 860){
+        const pct = parseFloat(saved)
+        const newWidth = Math.round(window.innerWidth * pct / 100)
+        packageListContainer.style.width = newWidth + 'px'
+      }
+    }catch(e){}
+  }
+
+  if(vSeparator && packageListContainer){
+    let draggingV = false
+    let startX = 0
+    let startWidth = 0
+
+    function onVMoveClient(x){
+      const dx = x - startX
+      const newWidth = Math.max(200, Math.min(window.innerWidth - 240, startWidth + dx))
+      packageListContainer.style.width = newWidth + 'px'
     }
 
-    addPackageBtn.addEventListener('click', () => {
-        addPackageModal.classList.remove('hidden');
-        formMessageEl.classList.add('hidden');
-    });
-
-    closeModalBtn.addEventListener('click', () => {
-        addPackageModal.classList.add('hidden');
-    });
-
-    window.addEventListener('click', (event) => {
-        if (event.target === addPackageModal) {
-            addPackageModal.classList.add('hidden');
-        }
-    });
-
-    addPackageForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(addPackageForm);
-            const data = Object.fromEntries(formData.entries());
-            // Ensure country is always uppercase for consistency with backend
-            data.country = data.country.toUpperCase();
-
-            try {
-                const response = await fetch('api.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data),
-            });
-
-            const responseText = await response.text();
-
-            if (!response.ok) {
-                throw new Error(`Serverfout (${response.status} ${response.statusText}):\n\n${responseText}`);
-            }
-
-            try {
-                const result = JSON.parse(responseText);
-                if (result.success) {
-                    formMessageEl.textContent = result.message;
-                    formMessageEl.className = 'form-message success';
-                    addPackageForm.reset();
-                    addPackageModal.classList.add('hidden');
-                    fetchData();
-                } else {
-                    formMessageEl.textContent = result.message;
-                    formMessageEl.className = 'form-message error';
-                }
-            } catch (jsonError) {
-                throw new Error(`Fout bij parsen van server antwoord (geen valide JSON):\n\n${responseText}`);
-            }
-        } catch (error) {
-            let errorMessage = 'Er is een onverwachte fout opgetreden (bijv. netwerkprobleem).';
-            if (error instanceof Error) {
-                // Network error or something else before we got a response
-                errorMessage = `Fout: ${error.message}`;
-            }
-            console.error('Error adding package:', error);
-            formMessageEl.textContent = errorMessage;
-            formMessageEl.className = 'form-message error';
-        }
-        formMessageEl.classList.remove('hidden');
-        addPackageModal.querySelector('.modal-content').scrollTo(0, addPackageModal.querySelector('.modal-content').scrollHeight);
-    });
-
-    if (detailDeleteBtn && typeof detailDeleteBtn.addEventListener === 'function') {
-      detailDeleteBtn.addEventListener('click', async () => {
-        if (!selectedPackage) return;
-
-        const confirmDelete = confirm(`Weet je zeker dat je pakket ${selectedPackage.customName || selectedPackage.trackingCode} (${selectedPackage.shipper}) wilt verwijderen?`);
-        if (!confirmDelete) return;
-
-        try {
-            const response = await fetch('api.php', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    shipper: selectedPackage.shipper,
-                    trackingCode: selectedPackage.trackingCode
-                }),
-            });
-            const result = await response.json();
-
-            if (result.success) {
-                alert(result.message);
-                fetchData();
-                clearDetailView();
-            } else {
-                alert(result.message);
-            }
-        } catch (error) {
-            console.error('Error deleting package:', error);
-            alert('Er is een onverwachte fout opgetreden tijdens het verwijderen.');
-        }
-      });
+    function pointerVDown(e){
+      if(window.innerWidth <= 860) return
+      e.preventDefault()
+      draggingV = true
+      startX = e.clientX
+      startWidth = packageListContainer.getBoundingClientRect().width
+      document.body.classList.add('dragging')
+      document.body.style.cursor = 'col-resize'
+      window.addEventListener('pointermove', pointerVMove)
+      window.addEventListener('pointerup', pointerVUp, {once:true})
     }
 
-    if (backToListBtn) {
-        backToListBtn.addEventListener('click', () => {
-            document.body.classList.remove('mobile-details-visible');
-        });
+    function pointerVMove(e){ if(!draggingV) return; onVMoveClient(e.clientX) }
+
+    function pointerVUp(e){
+      draggingV = false
+      document.body.classList.remove('dragging')
+      document.body.style.cursor = ''
+      window.removeEventListener('pointermove', pointerVMove)
+      try{
+        const pct = Math.round((packageListContainer.getBoundingClientRect().width / window.innerWidth) * 10000) / 100
+        localStorage.setItem('pt-left-width-pct', String(pct))
+      }catch(e){}
     }
 
-    toggleDetailsBtn.addEventListener('click', () => {
-        const detailSummaryContainer = document.getElementById('detail-summary-container');
-        const eventListContainer = document.getElementById('event-list-container');
+    vSeparator.addEventListener('pointerdown', pointerVDown)
 
-        const isDetailsHidden = detailSummaryContainer.classList.toggle('hidden');
+    // keyboard support: left/right arrows to nudge the left panel
+    vSeparator.tabIndex = 0
+    vSeparator.addEventListener('keydown', (e)=>{
+      const step = e.shiftKey ? 20 : 8
+      const cur = packageListContainer.getBoundingClientRect().width
+      if(e.key === 'ArrowLeft'){
+        packageListContainer.style.width = Math.max(160, cur - step) + 'px'
+        try{ localStorage.setItem('pt-left-width', Math.round(packageListContainer.getBoundingClientRect().width)) }catch(e){}
+        e.preventDefault()
+      } else if(e.key === 'ArrowRight'){
+        packageListContainer.style.width = Math.min(window.innerWidth - 160, cur + step) + 'px'
+        try{ localStorage.setItem('pt-left-width', Math.round(packageListContainer.getBoundingClientRect().width)) }catch(e){}
+        e.preventDefault()
+      }
+    })
 
-        if (window.innerWidth <= 768) {
-            eventListContainer.classList.toggle('hidden', !isDetailsHidden);
+    applySavedLeftWidth()
+    window.addEventListener('resize', ()=>{ if(window.innerWidth <= 860) packageListContainer.style.width = '' })
+  }
+
+  // Package Add Wizard
+  const wizard = document.getElementById('pt-wizard')
+  const wizardClose = document.getElementById('pt-wizard-close')
+  const wizardNext = document.getElementById('pt-wizard-next')
+  const wizardBack = document.getElementById('pt-wizard-back')
+  const addBtn = document.getElementById('pt-add')
+  
+  let currentStep = 1
+  let availableShippers = []
+  let wizardData = {
+    description: '',
+    email: '',
+    shipper: '',
+    trackingNumber: '',
+    extraFields: {},
+    shipperFields: []
+  }
+  
+  // Function to load shippers from API
+  async function loadShippers() {
+    try {
+      const response = await fetch('api.php?shippers=1')
+      if (!response.ok) throw new Error('Failed to load shippers')
+      const data = await response.json()
+      availableShippers = data.shippers
+      if (data.defaults) {
+        defaultEmail = data.defaults.email || ''
+        defaultCountry = data.defaults.country || 'NL'
+      }
+    } catch (error) {
+      console.error('Failed to load shippers:', error)
+      alert('Failed to load shippers. Please try again.')
+    }
+  }
+  
+  function showWizard() {
+    if (availableShippers.length === 0) {
+      loadShippers().then(() => {
+        currentStep = 1
+        wizardData = {
+          description: '',
+          email: defaultEmail,
+          shipper: '',
+          trackingNumber: '',
+          extraFields: {},
+          shipperFields: []
+        }
+        wizard.setAttribute('aria-hidden', 'false')
+        showWizardStep(1)
+        // set email input from defaults
+        try{ if (defaultEmail) document.getElementById('pt-notify-email').value = defaultEmail }catch(e){}
+      })
+    } else {
+      currentStep = 1
+      wizardData = {
+        description: '',
+        email: defaultEmail,
+        shipper: '',
+        trackingNumber: '',
+        extraFields: {},
+        shipperFields: []
+      }
+      wizard.setAttribute('aria-hidden', 'false')
+      showWizardStep(1)
+      try{ if (defaultEmail) document.getElementById('pt-notify-email').value = defaultEmail }catch(e){}
+    }
+  }
+  
+  function hideWizard() {
+    wizard.setAttribute('aria-hidden', 'true')
+  }
+  
+  function showWizardStep(step) {
+    document.querySelectorAll('.pt-wizard-step').forEach(el => el.style.display = 'none')
+    document.getElementById(`pt-wizard-step-${step}`).style.display = 'block'
+    
+    wizardBack.style.display = step > 1 ? 'block' : 'none'
+    wizardNext.style.display = step === 2 ? 'none' : 'block'
+    wizardNext.textContent = step === 3 ? 'Add Package' : 'Next'
+    
+    if (step === 2) {
+      const grid = document.getElementById('pt-shipper-grid')
+      grid.innerHTML = availableShippers.map(s => `
+        <button class="pt-shipper-btn" data-shipper="${s.id}" data-fields='${JSON.stringify(s.fields)}'>
+          <span>${s.name}</span>
+        </button>
+      `).join('')
+      
+      if (wizardData.shipper) {
+        grid.querySelector(`[data-shipper="${wizardData.shipper}"]`)?.classList.add('selected')
+      }
+      
+      grid.querySelectorAll('.pt-shipper-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          grid.querySelectorAll('.pt-shipper-btn').forEach(b => b.classList.remove('selected'))
+          btn.classList.add('selected')
+          wizardData.shipper = btn.dataset.shipper
+          
+          // Store fields for the selected shipper
+          wizardData.shipperFields = JSON.parse(btn.dataset.fields)
+          
+          // Advance to next step immediately
+          currentStep = 3
+          showWizardStep(3)
+        })
+      })
+    }
+    
+    if (step === 1) {
+      // prefill description and email inputs
+      try{ document.getElementById('pt-package-desc').value = wizardData.description || '' }catch(e){}
+      try{ document.getElementById('pt-notify-email').value = wizardData.email || defaultEmail || '' }catch(e){}
+    }
+
+    if (step === 3 && wizardData.shipper) {
+      // prefill tracking number
+      try{ document.getElementById('pt-tracking-number').value = wizardData.trackingNumber || '' }catch(e){}
+
+      const extraFields = document.getElementById('pt-extra-fields')
+      extraFields.innerHTML = (wizardData.shipperFields || []).map(f => {
+        const valFromData = (wizardData.extraFields && wizardData.extraFields[f.id]) ? wizardData.extraFields[f.id] : ''
+        const value = valFromData || (f.id === 'country' ? defaultCountry : '')
+        return `
+        <div class="pt-form-group">
+          <label for="pt-field-${f.id}">${f.label}${f.required ? '*' : ''}</label>
+          <input type="${f.type || 'text'}" id="pt-field-${f.id}" ${f.required ? 'required' : ''} value="${value}">
+        </div>
+      `
+      }).join('')
+    }
+  }
+  
+  async function validateStep(step) {
+    if (step === 1) {
+      const desc = document.getElementById('pt-package-desc').value.trim()
+      const email = document.getElementById('pt-notify-email').value.trim()
+      
+      if (!desc) {
+        alert('Please enter a package description')
+        return false
+      }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address')
+        return false
+      }
+      
+      wizardData.description = desc
+      wizardData.email = email
+      return true
+    }
+    
+    if (step === 2) {
+      if (!wizardData.shipper) {
+        alert('Please select a shipper')
+        return false
+      }
+      return true
+    }
+    
+    if (step === 3) {
+      const tracking = document.getElementById('pt-tracking-number').value.trim()
+      if (!tracking) {
+        alert('Please enter a tracking number')
+        return false
+      }
+      
+      wizardData.trackingNumber = tracking
+      
+      // Collect extra fields
+      const extraFields = document.getElementById('pt-extra-fields')
+      const required = Array.from(extraFields.querySelectorAll('input[required]'))
+      const empty = required.find(inp => !inp.value.trim())
+      if (empty) {
+        alert(`Please fill in the field: ${empty.previousElementSibling.textContent.replace('*', '')}`)
+        return false
+      }
+      
+      wizardData.extraFields = Array.from(extraFields.querySelectorAll('input')).reduce((acc, inp) => {
+        acc[inp.id.replace('pt-field-', '')] = inp.value.trim()
+        return acc
+      }, {})
+      
+      return true
+    }
+    
+    return true
+  }
+  
+  async function submitPackage() {
+    try {
+      const response = await fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipper: wizardData.shipper,
+          trackingCode: wizardData.trackingNumber,
+          customName: wizardData.description,
+          contactEmail: wizardData.email,
+          ...wizardData.extraFields
+        })
+      })
+      
+      if (!response.ok) throw new Error('Failed to add package')
+      
+      hideWizard()
+      loadPackagesFromApi()
+    } catch (err) {
+      console.error(err)
+      alert('Failed to add package. Please try again.')
+    }
+  }
+  
+  // Wire up wizard events
+  addBtn.addEventListener('click', showWizard)
+  wizardClose.addEventListener('click', hideWizard)
+  
+  wizardNext.addEventListener('click', async () => {
+    if (await validateStep(currentStep)) {
+      if (currentStep === 3) {
+        submitPackage()
+      } else {
+        currentStep++
+        showWizardStep(currentStep)
+      }
+    }
+  })
+  
+  wizardBack.addEventListener('click', () => {
+    if (currentStep > 1) {
+      currentStep--
+      showWizardStep(currentStep)
+    }
+  })
+  
+  wizard.addEventListener('click', e => {
+    if (e.target === wizard || e.target.classList.contains('pt-wizard-backdrop')) {
+      hideWizard()
+    }
+  })
+
+  // Theme toggle: persistent dark mode
+  function applyTheme(theme){
+    if(theme === 'dark'){
+      document.body.classList.add('dark')
+      if(themeToggleBtn) themeToggleBtn.setAttribute('aria-pressed','true')
+    } else {
+      document.body.classList.remove('dark')
+      if(themeToggleBtn) themeToggleBtn.setAttribute('aria-pressed','false')
+    }
+  }
+
+  // initialize theme from localStorage or system preference
+  try{
+    const saved = localStorage.getItem('pt-theme')
+    if(saved){ applyTheme(saved) }
+    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ applyTheme('dark') }
+    else { applyTheme('light') }
+  }catch(e){ /* ignore storage errors */ }
+
+  if(themeToggleBtn){
+    themeToggleBtn.addEventListener('click', ()=>{
+      const isDark = document.body.classList.contains('dark')
+      const newTheme = isDark ? 'light' : 'dark'
+      applyTheme(newTheme)
+      try{ localStorage.setItem('pt-theme', newTheme) }catch(e){}
+    })
+  }
+
+  // Activate/Delete handlers are wired earlier (use real API calls). No dummy popups.
+
+  // (duplicate theme listener removed; theme handled via persistent toggle above)
+
+  // initial render
+  // load packages from API and render list
+  async function loadPackagesFromApi(){
+    try{
+      const resp = await fetch('api.php')
+      if(!resp.ok) throw new Error('network')
+      const data = await resp.json()
+      const pkgs = data.packages || []
+      // map server package shape to the UI's expected shape
+      const mapped = []
+      pkgs.forEach((p, idx) => {
+        const id = p.trackingCode ? `${p.shipper}-${p.trackingCode}` : `pkg-${idx}`
+        // store full server object for later detail/history rendering
+        serverPackages[id] = p
+        mapped.push({
+          id,
+          shipper: p.shipper || '',
+          title: p.customName || ((p.shipper && p.trackingCode) ? `${p.shipper} • ${p.trackingCode}` : (p.trackingCode||p.shipper||'Package')),
+          status: p.packageStatus || '',
+          inactive: p.metadata && p.metadata.status === 'inactive',
+          code: p.trackingCode || p.code || ''
+        })
+      })
+      // populate PACKAGES for rendering
+      PACKAGES = mapped
+      // populate HISTORY from server objects if they include events (map by UI id)
+      HISTORY = {}
+      pkgs.forEach((p, idx) => {
+        const id = p.trackingCode ? `${p.shipper}-${p.trackingCode}` : `pkg-${idx}`
+        if (p.events) HISTORY[id] = p.events.slice()
+      })
+      renderList()
+      // if a package was selected before reload, re-render its details (do not force-open mobile view)
+      if(selectedId){
+        const still = mapped.some(x=>x.id === selectedId)
+        if(still){
+          renderHistory(selectedId)
+          renderDetails(selectedId)
         } else {
-            eventListContainer.classList.toggle('full-width', isDetailsHidden);
-            eventListContainer.style.width = isDetailsHidden ? '100%' : '50%';
-            detailSummaryContainer.style.width = isDetailsHidden ? '0%' : '50%';
+          selectedId = null
         }
-        
-        toggleDetailsBtn.textContent = isDetailsHidden ? 'Details' : 'Verberg';
-    });
-
-    refreshBtn.addEventListener('click', () => {
-        fetchData(); // Call fetchData to refresh the package list without a full page reload
-    });
-
-    fetchData();
-
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-
-    function applyTheme(theme) {
-        if (theme === 'dark') {
-            document.body.classList.add('dark');
-            themeToggleBtn.textContent = '☀️';
-        } else {
-            document.body.classList.remove('dark');
-            themeToggleBtn.textContent = '🌓';
-        }
+      }
+      updateActivateLabel()
+    }catch(err){
+      // on error, show empty list and log warning
+      console.warn('Could not load packages from api.php', err)
+      PACKAGES = []
+      HISTORY = {}
+      renderList()
+      updateActivateLabel()
     }
+  }
 
-    themeToggleBtn.addEventListener('click', () => {
-        const currentTheme = localStorage.getItem('theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-    });
+  loadPackagesFromApi()
 
-    const savedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  // NOTE: Do not auto-open details on page load. Let user select a package first on mobile.
+  // Previously we pre-selected the first package here which caused mobile to switch to details immediately.
+  // If you want to pre-select visually but not open mobile details, we could show selection without opening.
 
-    if (savedTheme) {
-        applyTheme(savedTheme);
-    } else if (prefersDark) {
-        applyTheme('dark');
+
+  // keyboard: ESC to close detail on mobile
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='Escape'){
+      detailContainer.classList.remove('show')
+      detailContainer.setAttribute('aria-hidden','true')
     }
+  })
 
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        const newTheme = e.matches ? 'dark' : 'light';
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-    });
-});
+})();

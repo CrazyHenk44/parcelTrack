@@ -1,108 +1,127 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ParcelTrack</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ParcelTrack — Redo</title>
+  <link rel="stylesheet" href="./style.css">
 </head>
-<body>
-    <header>
-        <h1>ParcelTrack</h1>
-        <button id="refresh-btn" title="Pakketten vernieuwen">↻</button>
-        <button id="theme-toggle-btn" title="Thema wisselen">🌓</button>
-        <button id="add-package-btn">+</button>
-    </header>
-    <main class="container">
-        <div id="package-list-container">
-            <div id="package-list"></div>
-        </div>
-        <div id="detail-container">
-            <div id="detail-placeholder">
-                <p>Selecteer een pakket om de details te bekijken.</p>
-            </div>
-            <div id="detail-content" class="hidden">
-                <div id="detail-header">
-                    <span id="back-to-list-btn">&larr;</span>
-                    <h3 id="detail-title"></h3>
-                    <button id="toggle-details-btn">Details</button>
-                </div>
-                <div class="detail-panels">
-                    <div id="event-list-container">
-                        <h3>Geschiedenis</h3>
-                        <div id="event-list" class="scrollable-panel">
-                        </div>
-                    </div>
-                    <div id="detail-summary-container">
-                        <h3>Details</h3>
-                        <div id="detail-summary" class="scrollable-panel">
-                        </div>
-                        <a id="detail-weblink" href="#" target="_blank" class="weblink detail-footer-item"></a>
-                    </div>
-                </div>
-                <div id="detail-footer-bars">
-                    <div id="combined-actions" class="detail-actions hidden">
-                        <button id="status-toggle-btn"></button>
-                        <button id="detail-delete-btn" class="delete-btn" title="Pakket verwijderen"><span role="img" aria-label="trash can">🗑️</span></button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
+<body class="pt-body">
+  <header class="pt-topbar">
+    <div class="pt-left">
+      <div class="pt-title">ParcelTrack</div>
+      <button class="pt-icon pt-reload" title="Reload" aria-label="Reload" id="pt-reload">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" class="icon icon-reload"><path d="M21 12a9 9 0 1 1-2.6-6.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+      <button class="pt-icon pt-theme-toggle" id="pt-theme-toggle" title="Toggle theme" aria-label="Toggle theme" aria-pressed="false">
+        <svg class="icon icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"></circle><g stroke="currentColor" stroke-width="2"><path d="M12 2v2" /><path d="M12 20v2" /><path d="M4.2 4.2l1.4 1.4" /><path d="M18.4 18.4l1.4 1.4" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="M4.2 19.8l1.4-1.4" /><path d="M18.4 5.6l1.4-1.4" /></g></svg>
+        <svg class="icon icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </button>
+    </div>
+    <div class="pt-right">
+      <button class="pt-add" id="pt-add" title="Add package">＋</button>
+    </div>
+  </header>
 
-    <!-- Add Package Modal -->
-    <div id="add-package-modal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h2>Nieuw pakket toevoegen</h2>
-            <form id="add-package-form">
-                <div class="form-group">
-                    <label for="shipper">Vervoerder:</label>
-                    <select id="shipper" name="shipper" required>
-                        <option value="DHL">DHL</option>
-                        <option value="PostNL">PostNL</option>
-                        <option value="YunExpress">YunExpress</option>
-                        <option value="Ship24">Overig via Ship24</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="trackingCode">Trackingcode:</label>
-                    <input type="text" id="trackingCode" name="trackingCode" required>
-                </div>
-                <div class="form-group">
-                    <label for="postalCode">Postcode:</label>
-                    <input type="text" id="postalCode" name="postalCode" required>
-                </div>
-                <div class="form-group">
-                    <label for="country">Land:</label>
-                    <input type="text" id="country" name="country" value="NL" required>
-                </div>
-                <div class="form-group">
-                    <label for="customName">Omschrijving (optioneel):</label>
-                    <input type="text" id="customName" name="customName">
-                </div>
-                <div class="form-group">
-                    <label for="contactEmail">Notificatie e-mail (optioneel):</label>
-                    <input type="email" id="contactEmail" name="contactEmail" placeholder="Standaard e-mailadres wordt gebruikt">
-                </div>
-                <button type="submit">Pakket toevoegen</button>
-            </form>
-            <div id="form-message" class="hidden"></div>
+  <main class="pt-container">
+    <aside class="pt-package-list-container">
+      <div class="pt-list-header">
+        <input id="pt-filter" class="pt-filter" placeholder="Search packages...">
+      </div>
+      <ul id="pt-package-list" class="pt-package-list" role="list">
+        <!-- packages rendered here -->
+      </ul>
+    </aside>
+
+  <div class="pt-v-separator" id="pt-v-separator" role="separator" aria-orientation="vertical" aria-label="Resize panels"></div>
+
+    <!-- Package Add Wizard -->
+    <div class="pt-wizard" id="pt-wizard" aria-hidden="true">
+      <div class="pt-wizard-backdrop"></div>
+      <div class="pt-wizard-content">
+        <div class="pt-wizard-header">
+          <h2 class="pt-wizard-title">Add Package</h2>
+          <button class="pt-wizard-close" id="pt-wizard-close" aria-label="Close">×</button>
         </div>
+        <div class="pt-wizard-body">
+          <!-- Step 1: Description & Email -->
+          <div class="pt-wizard-step" id="pt-wizard-step-1">
+            <div class="pt-wizard-step-content">
+              <div class="pt-form-group">
+                <label for="pt-package-desc">Package Description*</label>
+                <input type="text" id="pt-package-desc" required>
+              </div>
+              <div class="pt-form-group">
+                <label for="pt-notify-email">Notification Email*</label>
+                <input type="email" id="pt-notify-email" required>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 2: Shipper Selection -->
+          <div class="pt-wizard-step" id="pt-wizard-step-2" style="display: none;">
+            <div class="pt-wizard-step-content">
+              <div class="pt-shipper-grid" id="pt-shipper-grid">
+                <!-- Shippers will be inserted here -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- Step 3: Tracking Info -->
+          <div class="pt-wizard-step" id="pt-wizard-step-3" style="display: none;">
+            <div class="pt-wizard-step-content">
+              <div class="pt-form-group">
+                <label for="pt-tracking-number">Tracking Number*</label>
+                <input type="text" id="pt-tracking-number" required>
+              </div>
+              <div id="pt-extra-fields">
+                <!-- Extra fields will be inserted here based on shipper -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="pt-wizard-footer">
+          <button class="pt-btn pt-wizard-back" id="pt-wizard-back" style="display: none;">Back</button>
+          <button class="pt-btn pt-wizard-next" id="pt-wizard-next">Next</button>
+        </div>
+      </div>
     </div>
 
-    <script src="script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
-    </script>
+    <section class="pt-detail-container" id="pt-detail-container" aria-hidden="true">
+      <div class="pt-detail-topbar">
+        <button id="pt-back" class="pt-back" aria-label="Back">◀</button>
+        <h2 id="pt-detail-title" class="pt-detail-title">Select a package</h2>
+      </div>
+
+      <div class="pt-detail-content">
+        <div class="pt-detail-panels">
+          <div class="pt-history panel" id="pt-history">
+            <h3>History</h3>
+            <div class="pt-history-list" id="pt-history-list">
+              <!-- history events -->
+            </div>
+          </div>
+
+          <div class="pt-separator" id="pt-separator" role="separator" aria-orientation="vertical" aria-label="Resize panels"></div>
+
+            <div class="pt-details panel" id="pt-details">
+            <h3>Details</h3>
+            <div class="pt-details-body" id="pt-details-body">
+              <!-- details content -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-detail-footer">
+          <div class="pt-footer-actions">
+          <button id="pt-activate" class="pt-btn pt-activate">Activate</button>
+          <button id="pt-delete" class="pt-btn pt-delete">Delete</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
 </body>
 </html>

@@ -5,7 +5,6 @@ declare(strict_types=1);
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Shipper\DhlShipper;
@@ -24,8 +23,8 @@ class DhlShipperTest extends TestCase
     public function testFetch(): void
     {
         $trackingCode = '3SDHLEXAMPLE';
-        $postalCode = '5678CD';
-        $country = 'NL';
+        $postalCode   = '5678CD';
+        $country      = 'NL';
 
         // The DHL API returns a JSON array containing the shipment object.
         // We need to simulate this structure for the mock response.
@@ -37,10 +36,10 @@ class DhlShipperTest extends TestCase
         ]);
 
         $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack, 'http_errors' => false]);
+        $client       = new Client(['handler' => $handlerStack, 'http_errors' => false]);
 
         $shipper = new DhlShipper($this->logger, $client);
-        $result = $shipper->fetch($trackingCode, $postalCode, $country);
+        $result  = $shipper->fetch($trackingCode, ['postalCode' => $postalCode, 'country' => $country]);
 
         // Assertions for the TrackingResult object
         $this->assertInstanceOf(\ParcelTrack\TrackingResult::class, $result);

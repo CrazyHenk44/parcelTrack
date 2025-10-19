@@ -6,17 +6,17 @@ if (php_sapi_name() !== 'cli') {
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use ParcelTrack\Helpers\Logger;
-use ParcelTrack\Helpers\StorageService;
-use ParcelTrack\Shipper\ShipperFactory;
 use ParcelTrack\Helpers\Config;
-use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Helpers\PackageSorter;
+use ParcelTrack\Helpers\StorageService;
+use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Shipper\ShipperFactory;
 
 $testDataPath = $_GET['test_data_path'] ?? null;
 
-$config = new Config();
-$logger = new Logger($config->logLevel); // Use log level from Config.php
+$config  = new Config();
+$logger  = new Logger($config->logLevel); // Use log level from Config.php
 $storage = new StorageService($testDataPath);
 
 $shipperFactory = new ShipperFactory($logger, $config);
@@ -26,15 +26,15 @@ $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 switch ($requestMethod) {
     case 'POST':
-        $input = json_decode(file_get_contents('php://input'), true);
-        $shipperName = $input['shipper'] ?? null;
+        $input        = json_decode(file_get_contents('php://input'), true);
+        $shipperName  = $input['shipper']      ?? null;
         $trackingCode = $input['trackingCode'] ?? null;
-        $postalCode = $input['postalCode'] ?? null;
-        $country = $input['country'] ?? 'NL'; // Default to NL if not provided
+        $postalCode   = $input['postalCode']   ?? null;
+        $country      = $input['country']      ?? null;
 
-        if (!$shipperName || !$trackingCode || !$postalCode || !$country) {
-            $logger->log("POST: Missing shipper, trackingCode, postalCode, or country.", Logger::ERROR);
-            echo json_encode(['success' => false, 'message' => 'Vervoerder, trackingcode, postcode en land zijn verplicht.']);
+        if (!$shipperName || !$trackingCode) {
+            $logger->log('POST: Missing shipper or trackingCode.', Logger::ERROR);
+            echo json_encode(['success' => false, 'message' => 'Vervoerder en trackingcode zijn verplicht.']);
             exit;
         }
 
@@ -47,7 +47,14 @@ switch ($requestMethod) {
         }
 
         try {
-            $result = $shipper->fetch($trackingCode, $postalCode, $country);
+            $options = [];
+            if ($postalCode) {
+                $options['postalCode'] = $postalCode;
+            }
+            if ($country) {
+                $options['country'] = $country;
+            }
+            $result = $shipper->fetch($trackingCode, $options);
 
             if ($result) {
                 // Set metadata from form input
@@ -71,18 +78,18 @@ switch ($requestMethod) {
         break;
 
     case 'PUT': // New handler for saving parcel names
-        $input = json_decode(file_get_contents('php://input'), true);
-        $shipperName = $input['shipper'] ?? null;
+        $input        = json_decode(file_get_contents('php://input'), true);
+        $shipperName  = $input['shipper']      ?? null;
         $trackingCode = $input['trackingCode'] ?? null;
 
         if (!$shipperName || !$trackingCode) {
-            $logger->log("PUT: Missing shipper or trackingCode.", Logger::ERROR);
+            $logger->log('PUT: Missing shipper or trackingCode.', Logger::ERROR);
             echo json_encode(['success' => false, 'message' => 'Missing shipper or trackingCode.']);
             exit;
         }
 
         $packageId = "{$shipperName}_{$trackingCode}";
-        $package = $storage->load($shipperName, $trackingCode);
+        $package   = $storage->load($shipperName, $trackingCode);
 
         if (!$package) {
             $logger->log("PUT: Package not found: {$packageId}", Logger::ERROR);
@@ -92,7 +99,7 @@ switch ($requestMethod) {
 
         $updated = false;
         if (array_key_exists('customName', $input)) {
-            $customName = trim(strip_tags($input['customName'])); // Sanitize for XSS and trim whitespace
+            $customName                    = trim(strip_tags($input['customName'])); // Sanitize for XSS and trim whitespace
             $package->metadata->customName = ($customName === '') ? null : $customName;
             $logger->log("PUT: Set custom name for {$packageId} to '{$customName}'.", Logger::INFO);
             $updated = true;
@@ -107,7 +114,7 @@ switch ($requestMethod) {
         }
 
         if (isset($input['status'])) {
-            $status = \ParcelTrack\PackageStatus::from($input['status']);
+            $status                    = \ParcelTrack\PackageStatus::from($input['status']);
             $package->metadata->status = $status;
             $logger->log("PUT: Set status for {$packageId} to '{$input['status']}'.", Logger::INFO);
             $updated = true;
@@ -120,12 +127,12 @@ switch ($requestMethod) {
         break;
 
     case 'DELETE':
-        $input = json_decode(file_get_contents('php://input'), true);
-        $shipperName = $input['shipper'] ?? null;
+        $input        = json_decode(file_get_contents('php://input'), true);
+        $shipperName  = $input['shipper']      ?? null;
         $trackingCode = $input['trackingCode'] ?? null;
 
         if (!$shipperName || !$trackingCode) {
-            $logger->log("DELETE: Missing shipper or trackingCode.", Logger::ERROR);
+            $logger->log('DELETE: Missing shipper or trackingCode.', Logger::ERROR);
             echo json_encode(['success' => false, 'message' => 'Missing shipper or trackingCode.']);
             exit;
         }
@@ -145,11 +152,27 @@ switch ($requestMethod) {
 
     case 'GET':
     default:
+        // Handle shipper list request with fields
+        if (isset($_GET['shippers'])) {
+            $availableShippers = $shipperFactory->getAvailableShippers();
+            echo json_encode([
+                'shippers' => $availableShippers,
+                'defaults' => [
+                    'email'   => $config->defaultEmail,
+                    'country' => $config->defaultCountry
+                ]
+            ]);
+            exit;
+        }
+
+        // Normal package list request
         $packages = $storage->getAll();
 
         $displayPackages = [];
         foreach ($packages as $package) {
-            if (!$package) continue;
+            if (!$package) {
+                continue;
+            }
 
             $helper = $shipperFactory->createDisplayHelper($package);
 
@@ -164,9 +187,7 @@ switch ($requestMethod) {
 
         $response = [
             'packages' => $displayPackages,
-            'defaultEmail' => $config->defaultEmail,
-            'version' => $version,
-            'isShip24Enabled' => $config->isShip24Enabled(),
+            'version'  => $version,
         ];
 
         echo json_encode($response, JSON_PRETTY_PRINT);

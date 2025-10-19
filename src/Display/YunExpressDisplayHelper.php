@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ParcelTrack\Display;
 
-use ParcelTrack\TrackingResult;
 use ParcelTrack\Helpers\Logger;
+use ParcelTrack\TrackingResult;
 
 class YunExpressDisplayHelper implements DisplayHelperInterface
 {
@@ -16,16 +16,16 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
     private ?object $details;
 
     private static array $displayConfig = [
-        "Oorsprong" => "TrackInfo.OriginCountryCode",
-        "Bestemming" => "TrackInfo.DestinationCountryCode",
-        "Status" => "TrackData.TrackStatus",
-        "Gewicht" => "TrackInfo.Weight",
-        "Notitie" => "TrackInfo.AdditionalNotes",
-        "Vracht #" => "TrackInfo.WaybillNumber",
-        "Tracking #" => "TrackInfo.TrackingNumber",
-        "Klantorder #" => "TrackInfo.CustomerOrderNumber",
-        "Aangemaakt" => ["path" => "TrackInfo.CreatedOn", "type" => "date"],
-        "Bijgewerkt" => ["path" => "TrackInfo.LastTrackEvent.ProcessDate", "type" => "date"],
+        'Oorsprong'    => 'TrackInfo.OriginCountryCode',
+        'Bestemming'   => 'TrackInfo.DestinationCountryCode',
+        'Status'       => 'TrackData.TrackStatus',
+        'Gewicht'      => 'TrackInfo.Weight',
+        'Notitie'      => 'TrackInfo.AdditionalNotes',
+        'Vracht #'     => 'TrackInfo.WaybillNumber',
+        'Tracking #'   => 'TrackInfo.TrackingNumber',
+        'Klantorder #' => 'TrackInfo.CustomerOrderNumber',
+        'Aangemaakt'   => ['path' => 'TrackInfo.CreatedOn', 'type' => 'date'],
+        'Bijgewerkt'   => ['path' => 'TrackInfo.LastTrackEvent.ProcessDate', 'type' => 'date'],
     ];
 
     public function __construct(
@@ -33,12 +33,11 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
         Logger $logger
     ) {
         $this->package = $package;
-        $this->config = self::$displayConfig;
+        $this->config  = self::$displayConfig;
         $this->setLogger($logger);
-        
-        $raw = json_decode($package->rawResponse);
-        $this->details = $raw->ResultList[0] ?? null;
 
+        $raw           = json_decode($package->rawResponse);
+        $this->details = $raw->ResultList[0] ?? null;
     }
 
     public function getShipperName(): string
@@ -55,18 +54,18 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
     public function getDisplayData(): array
     {
         return [
-            'shipper' => $this->package->shipper,
-            'trackingCode' => $this->package->trackingCode,
-            'postalCode' => $this->package->getPostalCode(),
-            'packageStatus' => $this->package->packageStatus,
+            'shipper'           => $this->package->shipper,
+            'trackingCode'      => $this->package->trackingCode,
+            'postalCode'        => $this->package->getPostalCode(),
+            'packageStatus'     => $this->package->packageStatus,
             'packageStatusDate' => $this->package->packageStatusDate,
-            'customName' => $this->package->metadata->customName,
-            'events' => $this->package->events,
-            'metadata' => [
-                'status' => $this->package->metadata->status->value,
+            'customName'        => $this->package->metadata->customName,
+            'events'            => $this->package->events,
+            'metadata'          => [
+                'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl' => $this->generateTrackUrl(),
+            'trackUrl'         => $this->generateTrackUrl(),
             'formattedDetails' => $this->formatDetails(),
         ];
     }

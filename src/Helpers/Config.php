@@ -9,17 +9,19 @@ class Config
 {
     public readonly string $logLevel;
     public readonly ?string $defaultEmail;
+    public readonly string $defaultCountry;
     public readonly ?string $parcelTrackUrl;
     public readonly ?string $smtpFrom;
     public readonly ?string $ship24ApiKey;
 
     public function __construct()
     {
-        $this->logLevel = getenv('LOG_LEVEL') ?: 'INFO';
-        $this->defaultEmail = getenv('DEFAULT_EMAIL') ?: null;
+        $this->logLevel       = getenv('LOG_LEVEL') ?: 'INFO';
+        $this->defaultEmail   = getenv('DEFAULT_EMAIL') ?: null;
+        $this->defaultCountry = getenv('DEFAULT_COUNTRY') ?: 'NL';
         $this->parcelTrackUrl = getenv('PARCELTRACK_URL') ?: null;
-        $this->smtpFrom = getenv('SMTP_FROM') ?: null;
-        $this->ship24ApiKey = getenv('SHIP24_API_KEY') ?: null;
+        $this->smtpFrom       = getenv('SMTP_FROM') ?: null;
+        $this->ship24ApiKey   = getenv('SHIP24_API_KEY') ?: null;
     }
 
     public function isShip24Enabled(): bool

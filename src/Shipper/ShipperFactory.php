@@ -2,18 +2,13 @@
 
 namespace ParcelTrack\Shipper;
 
-use ParcelTrack\Shipper\DhlShipper;
-use ParcelTrack\Shipper\PostNLShipper;
-use ParcelTrack\Shipper\Ship24Shipper;
-use ParcelTrack\Shipper\YunExpressShipper;
-use ParcelTrack\Shipper\ShipperInterface;
-use ParcelTrack\Display\DisplayHelperInterface;
 use ParcelTrack\Display\DhlDisplayHelper;
+use ParcelTrack\Display\DisplayHelperInterface;
 use ParcelTrack\Display\PostNLDisplayHelper;
 use ParcelTrack\Display\Ship24DisplayHelper;
 use ParcelTrack\Display\YunExpressDisplayHelper;
-use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Helpers\Config;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\TrackingResult;
 
 class ShipperFactory
@@ -44,6 +39,42 @@ class ShipperFactory
             default:
                 return null;
         }
+    }
+
+    /**
+     * Get all available shippers with their required fields
+     * @return array Array of shipper information with format:
+     *               [['id' => string, 'name' => string, 'fields' => array]]
+     */
+    public function getAvailableShippers(): array
+    {
+        $shippers = [
+            [
+                'id'     => ShipperConstants::DHL,
+                'name'   => 'DHL',
+                'fields' => $this->create(ShipperConstants::DHL)->getRequiredFields()
+            ],
+            [
+                'id'     => ShipperConstants::POSTNL,
+                'name'   => 'PostNL',
+                'fields' => $this->create(ShipperConstants::POSTNL)->getRequiredFields()
+            ],
+            [
+                'id'     => ShipperConstants::YUNEXPRESS,
+                'name'   => 'YunExpress',
+                'fields' => $this->create(ShipperConstants::YUNEXPRESS)->getRequiredFields()
+            ]
+        ];
+
+        if ($this->config->isShip24Enabled()) {
+            $shippers[] = [
+                'id'     => ShipperConstants::SHIP24,
+                'name'   => 'Ship24',
+                'fields' => $this->create(ShipperConstants::SHIP24)->getRequiredFields()
+            ];
+        }
+
+        return $shippers;
     }
 
     public function createDisplayHelper(TrackingResult $package): ?DisplayHelperInterface

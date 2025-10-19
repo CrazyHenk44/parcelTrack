@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Display\Ship24DisplayHelper;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\PackageStatus;
-use ParcelTrack\Display\Ship24DisplayHelper;
 use ParcelTrack\TrackingResult;
-use ParcelTrack\PackageMetadata;
 use PHPUnit\Framework\TestCase;
 
 class Ship24DisplayHelperTest extends TestCase
@@ -22,17 +20,17 @@ class Ship24DisplayHelperTest extends TestCase
     private function createMockTrackingResult(string $packageStatusValue): TrackingResult
     {
         $rawResponseData = [
-            "data" => [
-                "trackings" => [
+            'data' => [
+                'trackings' => [
                     [
-                        "shipment" => [
-                            "originCountryCode" => "US",
-                            "destinationCountryCode" => "NL",
+                        'shipment' => [
+                            'originCountryCode'      => 'US',
+                            'destinationCountryCode' => 'NL',
                         ],
-                        "statistics" => [
-                            "timestamps" => [
-                                "deliveredDatetime" => "2025-10-17T10:00:00Z",
-                                "inTransitDatetime" => "2025-10-16T10:00:00Z",
+                        'statistics' => [
+                            'timestamps' => [
+                                'deliveredDatetime' => '2025-10-17T10:00:00Z',
+                                'inTransitDatetime' => '2025-10-16T10:00:00Z',
                             ]
                         ]
                     ]
@@ -40,27 +38,27 @@ class Ship24DisplayHelperTest extends TestCase
             ]
         ];
 
-        $trackingResult = new TrackingResult(
-            'TESTCODE123', // trackingCode
-            'Ship24',      // shipper
-            Ship24DisplayHelper::translateStatusMilestone($packageStatusValue), // packageStatus
-            '1234AB',      // postalCode
-            'NL',          // country
-            json_encode($rawResponseData)
-        );
+        $trackingResult = new TrackingResult([
+            'trackingCode'  => 'TESTCODE123',
+            'shipper'       => 'Ship24',
+            'packageStatus' => Ship24DisplayHelper::translateStatusMilestone($packageStatusValue),
+            'postalCode'    => '1234AB',
+            'country'       => 'NL',
+            'rawResponse'   => json_encode($rawResponseData)
+        ]);
 
-        $trackingResult->metadata->status = PackageStatus::Active;
+        $trackingResult->metadata->status       = PackageStatus::Active;
         $trackingResult->metadata->contactEmail = 'test@example.com';
-        $trackingResult->metadata->customName = 'Test Package';
+        $trackingResult->metadata->customName   = 'Test Package';
 
         return $trackingResult;
     }
 
     public function testPackageStatusTranslationDelivered(): void
     {
-        $trackingResult = $this->createMockTrackingResult("delivered");
-        $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
-        $displayData = $displayHelper->getDisplayData();
+        $trackingResult = $this->createMockTrackingResult('delivered');
+        $displayHelper  = new Ship24DisplayHelper($trackingResult, $this->logger);
+        $displayData    = $displayHelper->getDisplayData();
 
         $this->assertArrayHasKey('packageStatus', $displayData);
         $this->assertEquals('Bezorgd', $displayData['packageStatus']);
@@ -68,9 +66,9 @@ class Ship24DisplayHelperTest extends TestCase
 
     public function testPackageStatusTranslationInTransit(): void
     {
-        $trackingResult = $this->createMockTrackingResult("in_transit");
-        $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
-        $displayData = $displayHelper->getDisplayData();
+        $trackingResult = $this->createMockTrackingResult('in_transit');
+        $displayHelper  = new Ship24DisplayHelper($trackingResult, $this->logger);
+        $displayData    = $displayHelper->getDisplayData();
 
         $this->assertArrayHasKey('packageStatus', $displayData);
         $this->assertEquals('Onderweg', $displayData['packageStatus']);
@@ -78,9 +76,9 @@ class Ship24DisplayHelperTest extends TestCase
 
     public function testPackageStatusNoTranslation(): void
     {
-        $trackingResult = $this->createMockTrackingResult("unknown_status");
-        $displayHelper = new Ship24DisplayHelper($trackingResult, $this->logger);
-        $displayData = $displayHelper->getDisplayData();
+        $trackingResult = $this->createMockTrackingResult('unknown_status');
+        $displayHelper  = new Ship24DisplayHelper($trackingResult, $this->logger);
+        $displayData    = $displayHelper->getDisplayData();
 
         $this->assertArrayHasKey('packageStatus', $displayData);
         $this->assertEquals('unknown_status', $displayData['packageStatus']);

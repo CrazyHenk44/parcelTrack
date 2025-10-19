@@ -2,14 +2,12 @@
 
 namespace ParcelTrack\Shipper;
 
-use ParcelTrack\Event;
-use ParcelTrack\Helpers\Logger;
-use ParcelTrack\Helpers\DateHelper;
-use ParcelTrack\Display\Ship24DisplayHelper; // Import Ship24DisplayHelper
-use ParcelTrack\Shipper\ShipperInterface;
-use ParcelTrack\TrackingResult;
-use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
 use GuzzleHttp\Client;
+use ParcelTrack\Display\Ship24DisplayHelper;
+use ParcelTrack\Event; // Import Ship24DisplayHelper
+use ParcelTrack\Helpers\Logger;
+// Import ShipperConstants
+use ParcelTrack\TrackingResult;
 
 class Ship24Shipper implements ShipperInterface
 {
@@ -26,20 +24,40 @@ class Ship24Shipper implements ShipperInterface
         $this->client = $client ?? new Client();
     }
 
-    public function fetch(string $trackingCode, string $postalCode, string $country): ?TrackingResult
+    public function getRequiredFields(): array
+    {
+        return [
+            [
+                'id'       => 'postalCode',
+                'label'    => 'Postal Code',
+                'type'     => 'text',
+                'required' => true
+            ],
+            [
+                'id'       => 'country',
+                'label'    => 'Country',
+                'type'     => 'text',
+                'required' => true
+            ]
+        ];
+    }
+
+    public function fetch(string $trackingCode, array $options = []): ?TrackingResult
     {
         $this->logger->log("Fetching Ship24 tracking data for {$trackingCode}", Logger::INFO);
 
-        $payload = json_encode([
-            'trackingNumber' => $trackingCode,
-            'destinationPostCode' => $postalCode,
+        $postalCode = $options['postalCode'] ?? null;
+        $country    = $options['country']    ?? null;
+        $payload    = json_encode([
+            'trackingNumber'         => $trackingCode,
+            'destinationPostCode'    => $postalCode,
             'destinationCountryCode' => $country,
         ]);
 
         $guzzleResponse = $this->client->request('POST', self::API_URL, [
             'headers' => [
                 'Authorization' => 'Bearer ' . $this->apiKey,
-                'Content-Type' => 'application/json; charset=utf-8',
+                'Content-Type'  => 'application/json; charset=utf-8',
             ],
             'body' => $payload,
         ]);
@@ -54,9 +72,9 @@ class Ship24Shipper implements ShipperInterface
         }
 
         $trackingInfo = $data['data']['trackings'][0];
-        $shipment = $trackingInfo['shipment'];
-        $rawEvents = $trackingInfo['events'] ?? [];
-        $statistics = $trackingInfo['statistics'] ?? [];
+        $shipment     = $trackingInfo['shipment'];
+        $rawEvents    = $trackingInfo['events']     ?? [];
+        $statistics   = $trackingInfo['statistics'] ?? [];
 
         usort($rawEvents, function ($a, $b) {
             // Prefer occurrenceDatetime if available, otherwise fallback to datetime
@@ -79,26 +97,26 @@ class Ship24Shipper implements ShipperInterface
             $latestStatus = $unifiedEvents[0]->description;
         }
 
-        $result = new TrackingResult(
-            $trackingCode,
-            ShipperConstants::SHIP24, // Use constant for shipper name
-            Ship24DisplayHelper::translateStatusMilestone($shipment["statusMilestone"]), // Translate statusMilestone
-            $postalCode,
-            $country,
-            $response
-        );
+        $result = new TrackingResult([
+            'trackingCode'  => $trackingCode,
+            'shipper'       => ShipperConstants::SHIP24,
+            'packageStatus' => Ship24DisplayHelper::translateStatusMilestone($shipment['statusMilestone']),
+            'postalCode'    => $postalCode,
+            'country'       => $country,
+            'rawResponse'   => $response ?? ''
+        ]);
 
         $result->events = $unifiedEvents;
 
         // Determine delivery status and packageStatusDate
-        $deliveredDatetime = $statistics['timestamps']['deliveredDatetime'] ?? null;
+        $deliveredDatetime   = $statistics['timestamps']['deliveredDatetime'] ?? null;
         $result->isCompleted = !empty($deliveredDatetime);
 
         if ($result->isCompleted) { // If completed, it means it's delivered
-            $result->packageStatus = "Bezorgd";
+            $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $deliveredDatetime;
         } elseif (!empty($shipment['delivery']['estimatedDeliveryDate'])) {
-            $result->packageStatus = "Geplande bezorging: " . $shipment['delivery']['estimatedDeliveryDate'];
+            $result->packageStatus     = 'Geplande bezorging: ' . $shipment['delivery']['estimatedDeliveryDate'];
             $result->packageStatusDate = $shipment['delivery']['estimatedDeliveryDate'];
         }
 

@@ -2,13 +2,11 @@
 
 namespace ParcelTrack\Shipper;
 
-use ParcelTrack\Event;
-use ParcelTrack\Helpers\Logger;
-use ParcelTrack\Shipper\ShipperInterface;
-use ParcelTrack\Helpers\DateHelper;
-use ParcelTrack\TrackingResult;
 use GuzzleHttp\Client;
-use ParcelTrack\Shipper\ShipperConstants;
+use ParcelTrack\Event;
+use ParcelTrack\Helpers\DateHelper;
+use ParcelTrack\Helpers\Logger;
+use ParcelTrack\TrackingResult;
 
 class PostNLShipper implements ShipperInterface
 {
@@ -22,13 +20,33 @@ class PostNLShipper implements ShipperInterface
         $this->client = $client ?? new Client();
     }
 
-    public function fetch(string $trackingCode, string $postalCode, string $country): ?TrackingResult
+    public function getRequiredFields(): array
     {
-        $url = sprintf(self::API_URL, $trackingCode, $country, $postalCode);
+        return [
+            [
+                'id'       => 'postalCode',
+                'label'    => 'Postal Code',
+                'type'     => 'text',
+                'required' => true
+            ],
+            [
+                'id'       => 'country',
+                'label'    => 'Country',
+                'type'     => 'text',
+                'required' => true
+            ]
+        ];
+    }
+
+    public function fetch(string $trackingCode, array $options = []): ?TrackingResult
+    {
+        $postalCode = $options['postalCode'] ?? null;
+        $country    = $options['country']    ?? null;
+        $url        = sprintf(self::API_URL, $trackingCode, $country, $postalCode);
         $this->logger->log("Fetching PostNL tracking data for {$trackingCode} from {$url}", Logger::INFO);
 
         $guzzleResponse = $this->client->request('GET', $url);
-        $response = $guzzleResponse->getBody()->getContents();
+        $response       = $guzzleResponse->getBody()->getContents();
 
         $this->logger->log("Received response from PostNL for {$trackingCode}: " . $response, Logger::DEBUG);
 
@@ -52,7 +70,7 @@ class PostNLShipper implements ShipperInterface
             throw new \Exception($errorMsg);
         }
 
-        $colli = $data['colli'][$trackingCode];
+        $colli     = $data['colli'][$trackingCode];
         $rawEvents = $colli['analyticsInfo']['allObservations'] ?? [];
 
         $unifiedEvents = [];
@@ -68,25 +86,25 @@ class PostNLShipper implements ShipperInterface
             return strtotime($b->timestamp) <=> strtotime($a->timestamp);
         });
 
-        $result = new TrackingResult(
-            $trackingCode,
-            ShipperConstants::POSTNL, // Use constant for shipper name
-            $colli['statusPhase']['message'] ?? 'Unknown', // This will be packageStatus
-            $postalCode,
-            $country,
-            $response
-        );
+        $result = new TrackingResult([
+            'trackingCode'  => $trackingCode,
+            'shipper'       => ShipperConstants::POSTNL,
+            'packageStatus' => $colli['statusPhase']['message'] ?? 'Unknown',
+            'postalCode'    => $postalCode,
+            'country'       => $country,
+            'rawResponse'   => $response ?? ''
+        ]);
         $result->events = $unifiedEvents;
 
         // Determine delivery status and packageStatusDate
         $result->isCompleted = ($colli['isDelivered'] ?? false);
         if ($result->isCompleted && isset($colli['deliveryDate'])) { // If completed, it means it's delivered
-            $result->packageStatus = "Bezorgd";
+            $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $colli['deliveryDate'];
         } elseif (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
-            $start = new \DateTime($colli['eta']['start']);
-            $end = new \DateTime($colli['eta']['end']);
-            $result->packageStatus = sprintf("Verwachte bezorging: %s, tussen %s en %s", DateHelper::formatDutchDate($colli['eta']['start']), $start->format('H:i'), $end->format('H:i'));
+            $start                     = new \DateTime($colli['eta']['start']);
+            $end                       = new \DateTime($colli['eta']['end']);
+            $result->packageStatus     = sprintf('Verwachte bezorging: %s, tussen %s en %s', DateHelper::formatDutchDate($colli['eta']['start']), $start->format('H:i'), $end->format('H:i'));
             $result->packageStatusDate = $colli['eta']['start'];
         }
 

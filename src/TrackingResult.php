@@ -5,20 +5,39 @@ namespace ParcelTrack;
 class TrackingResult
 {
     /** @var Event[] */
-    public array $events = [];
-    public bool $isCompleted = false;
+    public array $events              = [];
+    public bool $isCompleted          = false;
     public ?string $packageStatusDate = null;
     public ?PackageMetadata $metadata = null;
 
-    public function __construct(
-        public string $trackingCode,
-        public string $shipper,
-        public string $packageStatus,
-        public ?string $postalCode,
-        public ?string $country, // Add country property
-        public string $rawResponse
-    ) {
-        $this->metadata = new PackageMetadata();
+    public string $trackingCode;
+    public string $shipper;
+    public string $packageStatus;
+    public ?string $postalCode = null;
+    public ?string $country    = null;
+    public string $rawResponse = '';
+
+    /**
+     * Ergonomic constructor: accepts associative array of fields. Only trackingCode, shipper, and packageStatus are required.
+     * Example:
+     *   new TrackingResult([
+     *     'trackingCode' => '123',
+     *     'shipper' => 'DHL',
+     *     'packageStatus' => 'Delivered',
+     *     'postalCode' => '1234AB',
+     *     'country' => 'NL',
+     *     'rawResponse' => '{...}'
+     *   ])
+     */
+    public function __construct(array $fields)
+    {
+        $this->trackingCode  = $fields['trackingCode'];
+        $this->shipper       = $fields['shipper'];
+        $this->packageStatus = $fields['packageStatus'];
+        $this->postalCode    = $fields['postalCode']  ?? null;
+        $this->country       = $fields['country']     ?? null;
+        $this->rawResponse   = $fields['rawResponse'] ?? '';
+        $this->metadata      = new PackageMetadata();
     }
 
     public function addEvent(Event $event): void
@@ -43,14 +62,14 @@ class TrackingResult
 
     public function __unserialize(array $data): void
     {
-        $this->trackingCode = $data['trackingCode'];
-        $this->shipper = $data['shipper'];
-        $this->packageStatus = $data['packageStatus'];
+        $this->trackingCode      = $data['trackingCode'];
+        $this->shipper           = $data['shipper'];
+        $this->packageStatus     = $data['packageStatus'];
         $this->packageStatusDate = $data['packageStatusDate'] ?? null;
-        $this->postalCode = $data['postalCode'];
-        $this->country = $data['country'] ?? 'NL'; // Default to NL for existing packages
-        $this->rawResponse = $data['rawResponse'];
-        $this->isCompleted = $data['isCompleted'] ?? false;
+        $this->postalCode        = $data['postalCode'];
+        $this->country           = $data['country'] ?? 'NL'; // Default to NL for existing packages
+        $this->rawResponse       = $data['rawResponse'];
+        $this->isCompleted       = $data['isCompleted'] ?? false;
 
         $this->events = array_map(function ($eventData) {
             if ($eventData instanceof Event) {

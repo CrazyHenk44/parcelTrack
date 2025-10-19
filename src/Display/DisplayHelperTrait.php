@@ -3,8 +3,6 @@
 namespace ParcelTrack\Display;
 
 use DateTime;
-use stdClass;
-
 use ParcelTrack\Helpers\Logger;
 
 trait DisplayHelperTrait
@@ -41,7 +39,7 @@ trait DisplayHelperTrait
         $parts = [
             trim(($address->street ?? '') . ' ' . ($address->houseNumber ?? '') . ($address->houseNumberSuffix ?? '')),
             $address->postalCode ?? null,
-            $address->town ?? $address->city ?? null,
+            $address->town       ?? $address->city ?? null,
         ];
         $filteredParts = array_filter($parts);
         return $asArray ? $filteredParts : implode(', ', $filteredParts);
@@ -66,12 +64,12 @@ trait DisplayHelperTrait
      */
     protected function formatDutchDate(DateTime $date): string
     {
-        $day = $date->format('d');
+        $day        = $date->format('d');
         $monthIndex = (int)$date->format('n') - 1;
-        $months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
-        $month = $months[$monthIndex];
-        $hours = $date->format('H');
-        $minutes = $date->format('i');
+        $months     = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+        $month      = $months[$monthIndex];
+        $hours      = $date->format('H');
+        $minutes    = $date->format('i');
         return "{$day} {$month}, {$hours}.{$minutes}u";
     }
 }

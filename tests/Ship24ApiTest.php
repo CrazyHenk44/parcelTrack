@@ -5,7 +5,6 @@ declare(strict_types=1);
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\Shipper\Ship24Shipper;
@@ -23,23 +22,23 @@ class Ship24ApiTest extends TestCase
     public function testFetch(): void
     {
         $trackingCode = '3SSHIP24EXAMPLE';
-        $postalCode = '1234AB';
-        $country = 'NL';
+        $postalCode   = '1234AB';
+        $country      = 'NL';
 
         // The Ship24 API returns the tracking data inside a 'data.trackings' object.
         // We need to simulate this structure for the mock response.
         $trackingData = json_decode(file_get_contents(__DIR__ . '/data/Ship24_3SSHIP24EXAMPLE.json'), true);
         $responseBody = json_encode($trackingData);
-        
+
         $mock = new MockHandler([
             new Response(200, ['Content-Type' => 'application/json'], $responseBody),
         ]);
 
         $handlerStack = HandlerStack::create($mock);
-        $client = new Client(['handler' => $handlerStack, 'http_errors' => false]);
+        $client       = new Client(['handler' => $handlerStack, 'http_errors' => false]);
 
         $shipper = new Ship24Shipper($this->logger, 'test-api-key', $client);
-        $result = $shipper->fetch($trackingCode, $postalCode, $country);
+        $result  = $shipper->fetch($trackingCode, ['postalCode' => $postalCode, 'country' => $country]);
 
         // Assertions for the TrackingResult object
         $this->assertInstanceOf(\ParcelTrack\TrackingResult::class, $result);

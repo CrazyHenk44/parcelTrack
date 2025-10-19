@@ -2,10 +2,8 @@
 
 namespace ParcelTrack\Display;
 
-use DateTime;
-use ParcelTrack\TrackingResult;
-use ParcelTrack\Display\DhlTranslationService;
 use ParcelTrack\Helpers\Logger;
+use ParcelTrack\TrackingResult;
 
 class DhlDisplayHelper implements DisplayHelperInterface
 {
@@ -17,33 +15,34 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private DhlTranslationService $translationService;
 
     private static array $displayConfig = [
-        "Afzender" => ["type" => "person", "path" => "origin"],
-        "Ontvanger" => ["type" => "person", "path" => "receiver"],
-        "Bestemming" => ["type" => "person", "path" => "destination"],
-        "Shipper Name" => "shipper.name",
-        "Bezorglocatie" => ["type" => "lookupType", "path"=>"destination.type"],
-        "DHL Produkt" => "product.description",
-        "Kaart" => ["path" => "destination", "type" => "map_link"],
-        "Open" => ["type" => "opening_hours_dhl", "path" => "destination.openingTimes"],
-        "Gesloten" => ["type" => "closure_periods", "path" => "destination.closurePeriods"],
-        "Afmetingen" => ["type" => "dimensions_dhl", "path" => "length"],
-        "Gewicht" => ["type" => "weight_dhl", "path" => "weight"],
+        'Afzender'      => ['type' => 'person', 'path' => 'origin'],
+        'Ontvanger'     => ['type' => 'person', 'path' => 'receiver'],
+        'Bestemming'    => ['type' => 'person', 'path' => 'destination'],
+        'Shipper Name'  => 'shipper.name',
+        'Bezorglocatie' => ['type' => 'lookupType', 'path' => 'destination.type'],
+        'DHL Produkt'   => 'product.description',
+        'Kaart'         => ['path' => 'destination', 'type' => 'map_link'],
+        'Open'          => ['type' => 'opening_hours_dhl', 'path' => 'destination.openingTimes'],
+        'Gesloten'      => ['type' => 'closure_periods', 'path' => 'destination.closurePeriods'],
+        'Afmetingen'    => ['type' => 'dimensions_dhl', 'path' => 'length'],
+        'Gewicht'       => ['type' => 'weight_dhl', 'path' => 'weight'],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
-        $this->config = self::$displayConfig;
+        $this->config  = self::$displayConfig;
         $this->setLogger($logger);
         $this->translationService = new DhlTranslationService($logger);
-        $raw = json_decode($package->rawResponse);
-        $this->details = (is_array($raw) && isset($raw[0])) ? $raw[0] : new \stdClass();
+        $raw                      = json_decode($package->rawResponse);
+        $this->details            = (is_array($raw) && isset($raw[0])) ? $raw[0] : new \stdClass();
     }
 
-     private function lookupType( $type ) {
+    private function lookupType($type)
+    {
         $types = [
-            "ADDRESS" => "Een Adres",
-            "PARCEL_STATION" => "Pakketautomaat"
+            'ADDRESS'        => 'Een Adres',
+            'PARCEL_STATION' => 'Pakketautomaat'
         ];
         return array_key_exists($type, $types) ? $types[$type] : $type;
     }
@@ -53,18 +52,18 @@ class DhlDisplayHelper implements DisplayHelperInterface
         $formattedDetails = $this->formatDetails();
 
         return [
-            'shipper' => $this->package->shipper,
-            'trackingCode' => $this->package->trackingCode,
-            'postalCode' => $this->package->getPostalCode(),
-            'packageStatus' => $this->package->packageStatus,
+            'shipper'           => $this->package->shipper,
+            'trackingCode'      => $this->package->trackingCode,
+            'postalCode'        => $this->package->getPostalCode(),
+            'packageStatus'     => $this->package->packageStatus,
             'packageStatusDate' => $this->package->packageStatusDate,
-            'customName' => $this->package->metadata->customName,
-            'events' => $this->package->events,
-            'metadata' => [
-                'status' => $this->package->metadata->status->value,
+            'customName'        => $this->package->metadata->customName,
+            'events'            => $this->package->events,
+            'metadata'          => [
+                'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl' => $this->generateTrackUrl(),
+            'trackUrl'         => $this->generateTrackUrl(),
             'formattedDetails' => $formattedDetails,
         ];
     }
@@ -80,17 +79,17 @@ class DhlDisplayHelper implements DisplayHelperInterface
         $formatted = [];
 
         $labelTranslations = [
-            'Sender' => 'Afzender',
-            'Receiver' => 'Ontvanger',
-            'Destination' => 'Bestemming',
+            'Sender'              => 'Afzender',
+            'Receiver'            => 'Ontvanger',
+            'Destination'         => 'Bestemming',
             'Destination Address' => 'Bestemmingsadres',
-            'Shipper Name' => 'Verzender',
-            'Type' => 'Type',
-            'Map' => 'Kaart',
-            'Opening Hours' => 'Open',
-            'Closed' => 'Gesloten',
-            'Dimensions' => 'Afmetingen',
-            'Weight' => 'Gewicht',
+            'Shipper Name'        => 'Verzender',
+            'Type'                => 'Type',
+            'Map'                 => 'Kaart',
+            'Opening Hours'       => 'Open',
+            'Closed'              => 'Gesloten',
+            'Dimensions'          => 'Afmetingen',
+            'Weight'              => 'Gewicht',
         ];
 
         foreach ($this->config as $label => $spec) {
@@ -107,13 +106,13 @@ class DhlDisplayHelper implements DisplayHelperInterface
                 if ($value !== null) {
                     switch ($spec['type']) {
                         case 'person':
-                            $name = $value->name ?? null;
-                            $company = $value->companyName ?? null;
+                            $name         = $value->name        ?? null;
+                            $company      = $value->companyName ?? null;
                             $displayNames = array_filter([$name, $company]);
-                            $value = implode(', ', $displayNames);
+                            $value        = implode(', ', $displayNames);
 
                             $addressPath = $spec['path'] . '.address';
-                            $address = $this->getValue($this->details, $addressPath);
+                            $address     = $this->getValue($this->details, $addressPath);
                             if ($address) {
                                 $addressParts = $this->formatAddress($address, true);
                                 $value .= ', ' . implode(', ', $addressParts);
@@ -138,20 +137,20 @@ class DhlDisplayHelper implements DisplayHelperInterface
                             $value = sprintf('<a href="https://www.openstreetmap.org/?mlat=%s&mlon=%s" target="_blank">OpenStreetMap</a>', $lat, $lon);
                             break;
                         case 'opening_hours_dhl':
-                            $lines = [];
+                            $lines    = [];
                             $weekdays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
                             foreach ($value as $day) {
                                 $dayName = $weekdays[$day->weekDay - 1];
                                 $lines[] = sprintf('%s: %s - %s', $dayName, $day->timeFrom, $day->timeTo);
                             }
-                            $value = implode("<br>", $lines);
+                            $value = implode('<br>', $lines);
                             break;
                         case 'closure_periods':
                             $lines = [];
                             foreach ($value as $period) {
                                 $lines[] = sprintf('%s - %s', $period->fromDate, $period->toDate);
                             }
-                            $value = implode("<br>", $lines);
+                            $value = implode('<br>', $lines);
                             break;
                         case 'dimensions_dhl':
                             if (isset($this->details->length, $this->details->width, $this->details->height) && $this->details->length > 0) {
@@ -164,13 +163,13 @@ class DhlDisplayHelper implements DisplayHelperInterface
                             $value = sprintf('%.2f kg', $value);
                             break;
                         default:
-                            $this->logger->log("Unknown type '{".$spec['type']."}' for label '{$label}'", Logger::DEBUG);
+                            $this->logger->log("Unknown type '{" . $spec['type'] . "}' for label '{$label}'", Logger::DEBUG);
                             break;
                     }
                 }
             }
             if ($value !== null && $value !== '') { // Ensure value is not null or empty string
-                $translatedLabel = $labelTranslations[$label] ?? $label;
+                $translatedLabel             = $labelTranslations[$label] ?? $label;
                 $formatted[$translatedLabel] = $value;
             }
         }

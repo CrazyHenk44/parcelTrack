@@ -11,7 +11,17 @@
     "require": {
         "guzzlehttp/guzzle": "^7.8"
     },
+    "config": {
+        "platform": {
+            "php": "8.2"
+        }
+    },
     "require-dev": {
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.0",
+        "friendsofphp/php-cs-fixer": "^3.0"
+    }
+    ,
+    "scripts": {
+        "fix-style": "sh bin/fix-php-style.sh"
     }
 }

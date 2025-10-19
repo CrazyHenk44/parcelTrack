@@ -2,9 +2,9 @@
 
 namespace ParcelTrack\Display;
 
-use ParcelTrack\TrackingResult;
 use ParcelTrack\Helpers\DateHelper;
 use ParcelTrack\Helpers\Logger;
+use ParcelTrack\TrackingResult;
 
 class Ship24DisplayHelper implements DisplayHelperInterface
 {
@@ -15,10 +15,10 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     private ?object $details;
 
     private static array $statusMilestoneTranslations = [
-        "delivered" => "Bezorgd",
-        "in_transit" => "Onderweg",
-        "info_received" => "Info ontvangen",
-        "pending" => "Aangemeld"
+        'delivered'     => 'Bezorgd',
+        'in_transit'    => 'Onderweg',
+        'info_received' => 'Info ontvangen',
+        'pending'       => 'Aangemeld'
     ];
 
     public static function translateStatusMilestone(string $status): string
@@ -28,43 +28,43 @@ class Ship24DisplayHelper implements DisplayHelperInterface
     }
 
     private static array $displayConfig = [
-        "Oorsprong" => "shipment.originCountryCode",
-        "Bestemming" => "shipment.destinationCountryCode",
-        "Info Ontvangen" => ["path" => "statistics.timestamps.infoReceivedDatetime", "type" => "date"],
-        "Onderweg" => ["path" => "statistics.timestamps.inTransitDatetime", "type" => "date"],
-        "Chauffeur onderweg" => ["path" => "statistics.timestamps.outForDeliveryDatetime", "type" => "date"],
-        "Mislukte poging" => ["path" => "statistics.timestamps.failedAttemptDatetime", "type" => "date"],
-        "Ophalen vanaf" => ["path" => "statistics.timestamps.availableForPickupDatetime", "type" => "date"],
-        "Uitzondering" => ["path" => "statistics.timestamps.exceptionDatetime", "type" => "date"],
-        "Afgeleverd" => ["path" => "statistics.timestamps.deliveredDatetime", "type" => "date"],
-        "Aangemaakt" => ["path" => "tracker.createdAt", "type" => "date"],
+        'Oorsprong'          => 'shipment.originCountryCode',
+        'Bestemming'         => 'shipment.destinationCountryCode',
+        'Info Ontvangen'     => ['path' => 'statistics.timestamps.infoReceivedDatetime', 'type' => 'date'],
+        'Onderweg'           => ['path' => 'statistics.timestamps.inTransitDatetime', 'type' => 'date'],
+        'Chauffeur onderweg' => ['path' => 'statistics.timestamps.outForDeliveryDatetime', 'type' => 'date'],
+        'Mislukte poging'    => ['path' => 'statistics.timestamps.failedAttemptDatetime', 'type' => 'date'],
+        'Ophalen vanaf'      => ['path' => 'statistics.timestamps.availableForPickupDatetime', 'type' => 'date'],
+        'Uitzondering'       => ['path' => 'statistics.timestamps.exceptionDatetime', 'type' => 'date'],
+        'Afgeleverd'         => ['path' => 'statistics.timestamps.deliveredDatetime', 'type' => 'date'],
+        'Aangemaakt'         => ['path' => 'tracker.createdAt', 'type' => 'date'],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
     {
         $this->package = $package;
-        $this->config = self::$displayConfig;
+        $this->config  = self::$displayConfig;
         $this->setLogger($logger); // Set logger for the trait
 
-        $raw = json_decode($package->rawResponse);
+        $raw           = json_decode($package->rawResponse);
         $this->details = $raw->data->trackings[0] ?? null;
     }
 
     public function getDisplayData(): array
     {
         return [
-            'shipper' => $this->package->shipper,
-            'trackingCode' => $this->package->trackingCode,
-            'postalCode' => $this->package->getPostalCode(),
-            'packageStatus' => $this->package->packageStatus,
+            'shipper'           => $this->package->shipper,
+            'trackingCode'      => $this->package->trackingCode,
+            'postalCode'        => $this->package->getPostalCode(),
+            'packageStatus'     => $this->package->packageStatus,
             'packageStatusDate' => $this->package->packageStatusDate,
-            'customName' => $this->package->metadata->customName,
-            'events' => $this->package->events,
-            'metadata' => [
-                'status' => $this->package->metadata->status->value,
+            'customName'        => $this->package->metadata->customName,
+            'events'            => $this->package->events,
+            'metadata'          => [
+                'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl' => $this->generateTrackUrl(),
+            'trackUrl'         => $this->generateTrackUrl(),
             'formattedDetails' => $this->formatDetails(),
         ];
     }
@@ -79,7 +79,7 @@ class Ship24DisplayHelper implements DisplayHelperInterface
         $formatted = [];
 
         if (!$this->details) {
-            $this->logger->log("No details available, returning empty formatted array.", Logger::DEBUG);
+            $this->logger->log('No details available, returning empty formatted array.', Logger::DEBUG);
             return $formatted;
         }
 

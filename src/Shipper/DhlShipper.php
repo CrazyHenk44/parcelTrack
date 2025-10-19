@@ -2,14 +2,11 @@
 
 namespace ParcelTrack\Shipper;
 
+use GuzzleHttp\Client;
 use ParcelTrack\Display\DhlTranslationService;
 use ParcelTrack\Event;
 use ParcelTrack\Helpers\Logger;
-use ParcelTrack\Shipper\ShipperInterface;
-use ParcelTrack\Helpers\DateHelper;
 use ParcelTrack\TrackingResult;
-use GuzzleHttp\Client;
-use ParcelTrack\Shipper\ShipperConstants;
 
 class DhlShipper implements ShipperInterface
 {
@@ -20,9 +17,9 @@ class DhlShipper implements ShipperInterface
 
     public function __construct(Logger $logger, Client $client = null)
     {
-        $this->logger = $logger;
+        $this->logger             = $logger;
         $this->translationService = new DhlTranslationService($logger);
-        $this->client = $client ?? new Client();
+        $this->client             = $client ?? new Client();
     }
 
     public function getDhlTranslationService(): DhlTranslationService
@@ -30,11 +27,24 @@ class DhlShipper implements ShipperInterface
         return $this->translationService;
     }
 
-    public function fetch(string $trackingCode, string $postalCode, string $country): ?TrackingResult
+    public function getRequiredFields(): array
     {
-        $url = sprintf(self::API_URL, $trackingCode, $postalCode);
+        return [
+            [
+                'id'       => 'postalCode',
+                'label'    => 'Postal Code',
+                'type'     => 'text',
+                'required' => true
+            ],
+        ];
+    }
+
+    public function fetch(string $trackingCode, array $options = []): ?TrackingResult
+    {
+        $postalCode = $options['postalCode'] ?? null;
+        $url        = sprintf(self::API_URL, $trackingCode, $postalCode);
         $this->logger->log("Fetching DHL tracking data for {$trackingCode} from {$url}", Logger::INFO);
-        
+
         $guzzleResponse = $this->client->request('GET', $url, [
             'headers' => ['Accept' => 'application/json']
         ]);
@@ -50,16 +60,15 @@ class DhlShipper implements ShipperInterface
         }
 
         $shipment = $data[0];
-            
+
         $rawEvents = $shipment['events'] ?? [];
 
         usort($rawEvents, function ($a, $b) {
             return strtotime($b['timestamp']) - strtotime($a['timestamp']);
         });
-  
+
         $unifiedEvents = [];
         foreach ($rawEvents as $rawEvent) {
-          
             $unifiedEvents[] = new Event(
                 $rawEvent['timestamp'],
                 $this->translationService->translate('events.status', $rawEvent['status']),
@@ -72,26 +81,25 @@ class DhlShipper implements ShipperInterface
             $latestStatus = $unifiedEvents[0]->description;
         }
 
-        $result = new TrackingResult(
-            $trackingCode,
-            ShipperConstants::DHL,
-            $latestStatus, // Use the determined latest status
-            $postalCode,
-            $country,
-            $response // Use $response instead of $apiResponse
-        );
+        $result = new TrackingResult([
+            'trackingCode'  => $trackingCode,
+            'shipper'       => ShipperConstants::DHL,
+            'packageStatus' => $latestStatus,
+            'postalCode'    => $postalCode,
+            'rawResponse'   => $response ?? ''
+        ]);
         $result->events = $unifiedEvents;
 
         // Determine delivery status and packageStatusDate
         $result->isCompleted = (isset($shipment['deliveredAt']) && $shipment['deliveredAt']);
         if ($result->isCompleted && isset($shipment['deliveredAt'])) { // If completed, it means it's delivered
-            $result->packageStatus = "Bezorgd";
+            $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $shipment['deliveredAt'];
         } elseif (isset($shipment['plannedDeliveryTimeframe'])) {
             // This field is often a string like "2024-01-01T10:00:00/2024-01-01T12:00:00"
-            $result->packageStatus = "Geplande bezorging: " . $shipment['plannedDeliveryTimeframe'];
+            $result->packageStatus = 'Geplande bezorging: ' . $shipment['plannedDeliveryTimeframe'];
             // Attempt to extract a date from plannedDeliveryTimeframe if possible, otherwise store the full string
-            $dateParts = explode('/', $shipment['plannedDeliveryTimeframe']);
+            $dateParts                 = explode('/', $shipment['plannedDeliveryTimeframe']);
             $result->packageStatusDate = $dateParts[0]; // Take the start date as the status date
         }
 

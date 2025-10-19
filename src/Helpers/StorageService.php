@@ -38,17 +38,17 @@ class StorageService
             return null;
         }
 
-        $result = new TrackingResult(
-            $data->trackingCode,
-            $data->shipper,
-            $data->packageStatus,
-            $data->postalCode ?? null,
-            $data->country ?? 'NL',
-            $data->rawResponse
-        );
+        $result = new TrackingResult([
+            'trackingCode'  => $data->trackingCode,
+            'shipper'       => $data->shipper,
+            'packageStatus' => $data->packageStatus,
+            'postalCode'    => $data->postalCode  ?? null,
+            'country'       => $data->country     ?? null,
+            'rawResponse'   => $data->rawResponse ?? ''
+        ]);
 
         $result->packageStatusDate = $data->packageStatusDate ?? null;
-        $result->isCompleted = $data->isCompleted ?? false;
+        $result->isCompleted       = $data->isCompleted       ?? false;
 
         if (isset($data->events) && is_array($data->events)) {
             foreach ($data->events as $eventData) {
@@ -73,15 +73,15 @@ class StorageService
 
     public function getAll(): array
     {
-        $files = glob($this->storagePath . '*.json');
+        $files   = glob($this->storagePath . '*.json');
         $results = [];
         foreach ($files as $file) {
             $filename = basename($file, '.json');
-            $parts = explode('_', $filename, 2);
+            $parts    = explode('_', $filename, 2);
             if (count($parts) === 2) {
-                $shipper = $parts[0];
+                $shipper      = $parts[0];
                 $trackingCode = $parts[1];
-                $result = $this->load($shipper, $trackingCode);
+                $result       = $this->load($shipper, $trackingCode);
                 if ($result) {
                     $results[] = $result;
                 }

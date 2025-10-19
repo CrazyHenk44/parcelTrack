@@ -35,8 +35,10 @@ COPY . .
 # Ensure the translations directory exists for the test suite
 RUN mkdir -p translations
 
-# Update dependencies, install them (including dev), and run the test suite
-RUN composer update --optimize-autoloader && vendor/bin/phpunit tests
+# Update dependencies, install them (including dev), run code-style fixer, and run the test suite
+RUN composer update --optimize-autoloader \
+    && composer run fix-style \
+    && vendor/bin/phpunit tests
 
 # After tests pass, reinstall with --no-dev to create a clean production vendor directory
 RUN composer install --no-dev --optimize-autoloader

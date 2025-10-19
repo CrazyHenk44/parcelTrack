@@ -13,3 +13,5 @@
 # Environment
 # Never commit your local environment variables.
 .env
+.php-cs-fixer.cache
+supervisord.pid
