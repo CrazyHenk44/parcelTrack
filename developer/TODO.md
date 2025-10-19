@@ -12,7 +12,6 @@ This list covers everything from documentation and security to code quality and 
 - [ ] Review all code for leftover comments, `var_dump()` calls, or debugging artifacts.
 - [ ] Perform a final end-to-end test of all features: adding, updating, deleting, and receiving email notifications.
 - [ ] Ensure all user-facing strings are consistently Dutch or provide an option for language switching.
-- [ ] Check for consistent code style (indentation, brace placement, etc.) across all PHP and JavaScript files. Consider adding a `php-cs-fixer` or `pint` configuration.
 
 ### 3. 🚀 Optimizations & Best Practices
 
@@ -23,7 +22,6 @@ This list covers everything from documentation and security to code quality and 
     - [ ] **Input Validation:** Implement more robust input validation for `POST` and `PUT` requests (e.g., using a validation library or more comprehensive checks) beyond just `isset` and `empty`.
     - [ ] **Response Structure:** Standardize API response structure (e.g., always include `status`, `message`, and `data` fields).
     - [ ] **Shipper Error Messages:** Instead of hardcoding shipper names in error messages, dynamically list supported shippers from `ShipperFactory`.
-    - [ ] **`$testDataPath` Security:** If `$testDataPath` is intended for testing, ensure it's only accessible in a development environment or remove it for production.
 - [ ] **`src/cron.php`:**
     - [ ] **Mailer Service:** Extract email sending logic into a dedicated `MailerService` class. This would improve testability and allow for easier switching between `mail()` and more robust solutions like `PHPMailer` or `Symfony Mailer`.
     - [ ] **Email Templating:** Use a simple templating engine (even basic `sprintf` with a template file) for HTML email bodies instead of extensive string concatenation. This improves readability and maintainability and reduces XSS risk.

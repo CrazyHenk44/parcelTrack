@@ -27,10 +27,6 @@ This section summarizes the current state of the application and key technical d
 -   **`StorageService.php`**: Handles reading and writing package data to JSON files in the `data/` directory.
 -   **`Logger.php`**: A simple logger that outputs messages to `stdout`, suitable for containerized environments.
 
-### Shipper Implementations
-
--   **`src/Shipper/*`**: Implements the `ShipperInterface` per shipper.
-
 ### Backend (`api.php`)
 
 A RESTful API that serves as the bridge between the frontend and the data storage.

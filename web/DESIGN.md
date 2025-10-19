@@ -180,8 +180,7 @@ DOM classes/IDs reference
 - Important IDs used by scripts: `#pt-package-list`, `#pt-filter`, `#pt-detail-container`, `#pt-detail-title`, `#pt-history-list`, `#pt-details-body`, `#pt-reload`, `#pt-theme-toggle`, `#pt-add`, `#pt-back`, `#pt-separator`, `#pt-v-separator`, `#pt-activate`, `#pt-delete`.
 
 API contract (server -> frontend)
-- GET `api.php` returns JSON: { packages: [ ... ], defaultEmail, version, isShip24Enabled } 
-  Note: defaultEmail will be removed in future versions as it's now part of the shippers endpoint
+- GET `api.php` returns JSON: { packages: [ ... ], version }
 - Each package object (display package) will typically include:
   - shipper (string)
   - trackingCode (string)

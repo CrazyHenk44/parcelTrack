@@ -13,11 +13,9 @@ use ParcelTrack\Helpers\StorageService;
 use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
 use ParcelTrack\Shipper\ShipperFactory;
 
-$testDataPath = $_GET['test_data_path'] ?? null;
-
 $config  = new Config();
 $logger  = new Logger($config->logLevel); // Use log level from Config.php
-$storage = new StorageService($testDataPath);
+$storage = new StorageService();
 
 $shipperFactory = new ShipperFactory($logger, $config);
 
