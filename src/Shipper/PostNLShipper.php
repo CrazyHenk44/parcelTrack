@@ -98,7 +98,7 @@ class PostNLShipper implements ShipperInterface
 
         // Determine delivery status and packageStatusDate
         $result->isCompleted = ($colli['isDelivered'] ?? false);
-        if ($result->isCompleted && isset($colli['deliveryDate'])) { // If completed, it means it's delivered
+        if ($result->isCompleted && isset($colli['deliveryDate'])) {
             $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $colli['deliveryDate'];
         } elseif (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
@@ -109,5 +109,26 @@ class PostNLShipper implements ShipperInterface
         }
 
         return $result;
+    }
+
+    public function getShipperLink(TrackingResult $package): ?string
+    {
+        // Construct a link to the PostNL tracking page if possible
+        $trackingCode = $package->trackingCode ?? '';
+        $postalCode   = $package->postalCode ?? null;
+        $country      = $package->country ?? 'NL';
+
+        if (!$trackingCode) {
+            return null;
+        }
+
+        if ($postalCode !== null && $postalCode !== '') {
+            // Use country if available, default to NL
+            $countryForUrl = $country ?? 'NL';
+            return "https://jouw.postnl.nl/track-and-trace/trackingcode/{$trackingCode}/{$countryForUrl}/{$postalCode}";
+        }
+
+        // Fallback when postal code is not available
+        return "https://jouw.postnl.nl/track-and-trace/trackingcode/{$trackingCode}";
     }
 }

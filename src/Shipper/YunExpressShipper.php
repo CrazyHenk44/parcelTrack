@@ -101,4 +101,15 @@ class YunExpressShipper implements ShipperInterface
         $tr->events = $events;
         return $tr;
     }
+
+    public function getShipperLink(TrackingResult $package): ?string
+    {
+         $trackingCode = $package->trackingCode ?? '';
+        
+        if (!$trackingCode) {
+            return null;
+        }
+
+        return "https://www.yuntrack.com/Track/Detailing?id={$trackingCode}";
+    }
 }

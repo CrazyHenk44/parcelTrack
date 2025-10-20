@@ -52,7 +52,7 @@
         <div class="pt-edit">✎</div>
         <div style="flex:1">
           <div class="pt-package-title">${p.title} <span class="muted" style="font-weight:600;margin-left:8px;font-family:monospace">${p.shipper}</span></div>
-          <div class="pt-package-sub">${p.status} • <span class="muted">${p.code}</span></div>
+          <div class="pt-package-sub">${p.status}</span></div>
         </div>
       `
 
@@ -126,13 +126,17 @@
       const tb = new Date(b.timestamp || b.when || 0).getTime()
       return tb - ta
     })
+    let last = null
     events.forEach(ev=>{
       const d = document.createElement('div')
       d.className = 'pt-history-item'
       const when = ev.timestamp ? formatDutchDateIso(ev.timestamp) : (ev.when || '')
       const where = ev.location || ev.where || ''
       d.innerHTML = `<div class="muted" style="font-size:0.85rem">${when}</div><div style="margin-top:6px">${ev.description || ev.text || ''}</div><div class="muted" style="font-size:0.85rem;margin-top:6px">${where||''}</div>`
-      historyList.appendChild(d)
+      if (last !== d.innerHTML) {
+        historyList.appendChild(d)
+      }
+      last = d.innerHTML
     })
   }
 
@@ -146,7 +150,9 @@
       header.style.display = 'flex'
       header.style.gap = '12px'
       header.style.alignItems = 'center'
-      header.innerHTML = `<div style="font-weight:700">${serverPkg.shipper}</div><div class="muted">Tracking: <span style="font-family:monospace">${serverPkg.trackingCode || serverPkg.code || ''}</span></div>`
+      const tracking = serverPkg.trackingCode || serverPkg.code || '';
+      const trackingHtml = serverPkg.trackingLink ? `<a href="${serverPkg.trackingLink}" target="_blank" class="pt-tracking-link" style="font-family:monospace">${tracking}</a>` : `<span style="font-family:monospace">${tracking}</span>`;
+      header.innerHTML = `<div style="font-weight:700">${serverPkg.shipper}</div><div class="muted">${trackingHtml}</div>`;
       detailsBody.appendChild(header)
       // formatted details (may contain HTML)
       if(serverPkg.formattedDetails){

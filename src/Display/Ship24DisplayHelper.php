@@ -64,14 +64,9 @@ class Ship24DisplayHelper implements DisplayHelperInterface
                 'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl'         => $this->generateTrackUrl(),
+            'trackingLink'     => $this->getTrackingLink($this->package),
             'formattedDetails' => $this->formatDetails(),
         ];
-    }
-
-    private function generateTrackUrl(): string
-    {
-        return '';
     }
 
     private function formatDetails(): array

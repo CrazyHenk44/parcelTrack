@@ -21,4 +21,11 @@ interface ShipperInterface
      *               Only trackingCode is always required; others are shipper-specific.
      */
     public function getRequiredFields(): array;
+
+    /**
+     * Get the URL/link for this package on the shipper's website, if available
+     * @param TrackingResult $package
+     * @return string|null
+     */
+    public function getShipperLink(TrackingResult $package): ?string;
 }

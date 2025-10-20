@@ -14,18 +14,32 @@ $logger  = new Logger($config->logLevel);
 $storage = new StorageService();
 
 // Parse command-line options
-$options = getopt('f', ['force', 'no-mail']);
+$options = getopt('fp:', ['force', 'no-mail', 'package:']);
 $force   = isset($options['f']) || isset($options['force']);
 $noMail  = isset($options['no-mail']);
+$packageNumber = $options['p'] ?? $options['package'] ?? null;
+if ($packageNumber !== null) {
+    $packageNumber = trim($packageNumber);
+    if ($packageNumber === '') {
+        $logger->log('Empty package number provided, ignoring filter.', Logger::WARNING);
+        $packageNumber = null;
+    }
+}
 
 $allResults        = $storage->getAll();
-$packagesToProcess = $allResults;
-
-if (!$force) {
-    $packagesToProcess = array_filter($allResults, function ($package) {
-        // Default to active if metadata or status is somehow missing for old packages
-        return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
+if ($packageNumber !== null) {
+    $packagesToProcess = array_filter($allResults, function ($package) use ($packageNumber) {
+        return $package->trackingCode === $packageNumber;
     });
+    $logger->log('Filtering to package ' . $packageNumber . '. Found ' . count($packagesToProcess) . ' packages.', Logger::INFO);
+} else {
+    $packagesToProcess = $allResults;
+    if (!$force) {
+        $packagesToProcess = array_filter($allResults, function ($package) {
+            // Default to active if metadata or status is somehow missing for old packages
+            return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
+        });
+    }
 }
 
 $logger->log('Found ' . count($allResults) . ' total packages. Processing ' . count($packagesToProcess) . ' packages.', Logger::INFO);
@@ -123,16 +137,7 @@ foreach ($packagesToProcess as $existingResult) {
             }
 
             // Shipper Web Interface Link
-            $shipperLink = '';
-            if ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::DHL) {
-                $shipperLink = "https://www.dhlparcel.nl/nl/volg-uw-zending-0?tt={$newResult->trackingCode}&pc={$newResult->postalCode}";
-            } elseif ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::POSTNL) {
-                $country     = 'NL'; // Assuming NL for PostNL
-                $postalCode  = $newResult->postalCode ?? 'UNKNOWN';
-                $shipperLink = "https://jouw.postnl.nl/track-and-trace/trackingcode/{$newResult->trackingCode}/{$country}/{$postalCode}";
-            } elseif ($newResult->shipper === \ParcelTrack\Shipper\ShipperConstants::SHIP24) {
-                $shipperLink = "https://www.ship24.com/tracking?nums={$newResult->trackingCode}";
-            }
+            $shipperLink = $shipper ? $shipper->getShipperLink($newResult) : null;
             if ($shipperLink) {
                 $body .= "<p><a href=\"{$shipperLink}\">Bekijk op website van vervoerder</a></p>\r\n";
             }

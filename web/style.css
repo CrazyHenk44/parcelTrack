@@ -323,3 +323,12 @@ body, .pt-topbar, .pt-detail-container, .pt-package-list-container, .pt-detail-f
 /* small niceties */
 .muted{color:var(--muted)}
 .center{text-align:center}
+
+.pt-tracking-link {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+body.dark .pt-tracking-link {
+  color: var(--accent-2);
+}

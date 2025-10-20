@@ -45,12 +45,6 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
         return \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS;
     }
 
-    private function generateTrackUrl(): string
-    {
-        return "https://www.yuntrack.com/Track/Detailing?id={$this->package->trackingCode}";
-    }
-
-
     public function getDisplayData(): array
     {
         return [
@@ -65,7 +59,7 @@ class YunExpressDisplayHelper implements DisplayHelperInterface
                 'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl'         => $this->generateTrackUrl(),
+            'trackingLink'     => $this->getTrackingLink($this->package),
             'formattedDetails' => $this->formatDetails(),
         ];
     }

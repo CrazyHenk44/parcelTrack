@@ -126,7 +126,7 @@ class ApiIntegrationTest extends TestCase
         $this->assertEquals('DHL', $dhlPackage['shipper']);
         $this->assertEquals('DHL Test Package', $dhlPackage['customName']);
         $this->assertEquals('active', $dhlPackage['metadata']['status']);
-        $this->assertEquals('Geplande bezorging: 2025-10-09T10:00:00/2025-10-09T14:00:00', $dhlPackage['packageStatus']);
+        $this->assertEquals('Geplande bezorging:<br>9 okt, 10u - 14u', $dhlPackage['packageStatus']);
         $this->assertEquals(
             'Receiver Name, Receiver Street 2, 5678CD, Receiver City',
             $dhlPackage['formattedDetails']['Ontvanger']

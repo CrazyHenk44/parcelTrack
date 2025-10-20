@@ -48,16 +48,9 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                 'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl'         => $this->generateTrackUrl(),
+            'trackingLink'     => $this->getTrackingLink($this->package),
             'formattedDetails' => $this->formatDetails(),
         ];
-    }
-
-    private function generateTrackUrl(): string
-    {
-        $country    = $this->details->recipient->address->country    ?? 'NL';
-        $postalCode = $this->details->recipient->address->postalCode ?? '';
-        return "https://jouw.postnl.nl/track-and-trace/{$this->package->trackingCode}/{$country}/{$postalCode}";
     }
 
     private function formatDetails(): array

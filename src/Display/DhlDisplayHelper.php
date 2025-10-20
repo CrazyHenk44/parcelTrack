@@ -15,11 +15,13 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private DhlTranslationService $translationService;
 
     private static array $displayConfig = [
+        'Shipper Name'  => 'shipper.name',
         'Afzender'      => ['type' => 'person', 'path' => 'origin'],
         'Ontvanger'     => ['type' => 'person', 'path' => 'receiver'],
-        'Bestemming'    => ['type' => 'person', 'path' => 'destination'],
-        'Shipper Name'  => 'shipper.name',
         'Bezorglocatie' => ['type' => 'lookupType', 'path' => 'destination.type'],
+        'Bezorgadres'    => ['type' => 'person', 'path' => 'destination'],
+        'Referentie'    => 'reference',
+        'Type Produkt'  => 'packageType',
         'DHL Produkt'   => 'product.description',
         'Kaart'         => ['path' => 'destination', 'type' => 'map_link'],
         'Open'          => ['type' => 'opening_hours_dhl', 'path' => 'destination.openingTimes'],
@@ -41,7 +43,7 @@ class DhlDisplayHelper implements DisplayHelperInterface
     private function lookupType($type)
     {
         $types = [
-            'ADDRESS'        => 'Een Adres',
+            'ADDRESS'        => 'Een adres',
             'PARCEL_STATION' => 'Pakketautomaat'
         ];
         return array_key_exists($type, $types) ? $types[$type] : $type;
@@ -63,15 +65,9 @@ class DhlDisplayHelper implements DisplayHelperInterface
                 'status'       => $this->package->metadata->status->value,
                 'contactEmail' => $this->package->metadata->contactEmail,
             ],
-            'trackUrl'         => $this->generateTrackUrl(),
+            'trackingLink'     => $this->getTrackingLink($this->package),
             'formattedDetails' => $formattedDetails,
         ];
-    }
-
-    private function generateTrackUrl(): string
-    {
-        $postalCode = $this->package->postalCode ?? '';
-        return "https://www.dhlparcel.nl/nl/volg-uw-zending-0?tt={$this->package->trackingCode}&pc={$postalCode}";
     }
 
     private function formatDetails(): array
@@ -111,11 +107,14 @@ class DhlDisplayHelper implements DisplayHelperInterface
                             $displayNames = array_filter([$name, $company]);
                             $value        = implode(', ', $displayNames);
 
+                            if ($value) {
+                                $value .= ', ';
+                            }
                             $addressPath = $spec['path'] . '.address';
                             $address     = $this->getValue($this->details, $addressPath);
                             if ($address) {
                                 $addressParts = $this->formatAddress($address, true);
-                                $value .= ', ' . implode(', ', $addressParts);
+                                $value .= implode(', ', $addressParts);
                             }
                             break;
                         case 'address':
@@ -134,7 +133,11 @@ class DhlDisplayHelper implements DisplayHelperInterface
                                     break;
                                 }
                             }
-                            $value = sprintf('<a href="https://www.openstreetmap.org/?mlat=%s&mlon=%s" target="_blank">OpenStreetMap</a>', $lat, $lon);
+                            if ($lat!==0 && $lon!==0) {
+                                $value = sprintf('<a href="https://www.openstreetmap.org/?mlat=%s&mlon=%s" target="_blank">OpenStreetMap</a>', $lat, $lon);
+                            } else {
+                                $value = null;
+                            }
                             break;
                         case 'opening_hours_dhl':
                             $lines    = [];

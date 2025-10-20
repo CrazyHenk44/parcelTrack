@@ -181,11 +181,8 @@ switch ($requestMethod) {
 
         $displayPackages = PackageSorter::sort($displayPackages);
 
-        $version = file_exists(__DIR__ . '/../VERSION') ? trim(file_get_contents(__DIR__ . '/../VERSION')) : 'dev';
-
         $response = [
             'packages' => $displayPackages,
-            'version'  => $version,
         ];
 
         echo json_encode($response, JSON_PRETTY_PRINT);

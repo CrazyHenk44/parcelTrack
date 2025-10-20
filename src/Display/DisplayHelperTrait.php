@@ -72,4 +72,17 @@ trait DisplayHelperTrait
         $minutes    = $date->format('i');
         return "{$day} {$month}, {$hours}.{$minutes}u";
     }
+
+    protected function getTrackingLink( \ParcelTrack\TrackingResult $tr ): ?string {
+        $config  = new \ParcelTrack\Helpers\Config();
+        $logger  = new \ParcelTrack\Helpers\Logger($config->logLevel);
+        $shipperFactory = new \ParcelTrack\Shipper\ShipperFactory($logger, $config);
+
+        $shipper = $shipperFactory->create($tr->shipper);
+        if ($shipper) {
+            return $shipper->getShipperLink($tr);
+        }
+
+        return null;
+    }
 }

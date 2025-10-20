@@ -42,6 +42,11 @@ class Ship24Shipper implements ShipperInterface
         ];
     }
 
+    public function getShipperLink(TrackingResult $package): ?string
+    {
+        return null;
+    }
+
     public function fetch(string $trackingCode, array $options = []): ?TrackingResult
     {
         $this->logger->log("Fetching Ship24 tracking data for {$trackingCode}", Logger::INFO);
