@@ -94,11 +94,36 @@ body.pt-body{background:var(--bg);color:var(--text);}
 /* improved touch behavior */
 .pt-separator, .pt-v-separator{touch-action:none}
 
-/* theme icon animation */
-.pt-theme-toggle .icon-moon{opacity:0;transform:scale(.8);transition:opacity 220ms, transform 220ms}
-.pt-theme-toggle .icon-sun{opacity:1;transform:scale(1);transition:opacity 220ms, transform 220ms}
-body.dark .pt-theme-toggle .icon-moon{opacity:1;transform:scale(1)}
-body.dark .pt-theme-toggle .icon-sun{opacity:0;transform:scale(.8)}
+/* theme icon stacking and visibility */
+.pt-theme-toggle {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+.pt-theme-toggle .icon-moon,
+.pt-theme-toggle .icon-sun {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity 220ms ease;
+}
+.pt-theme-toggle .icon-sun {
+  opacity: 1;
+  color: var(--text);
+}
+.pt-theme-toggle .icon-moon {
+  opacity: 0;
+  color: var(--muted);
+}
+body.dark .pt-theme-toggle .icon-moon {
+  opacity: 1;
+  color: var(--text);
+}
+body.dark .pt-theme-toggle .icon-sun {
+  opacity: 0;
+  color: var(--muted);
+}
 
 
 /* Responsive: mobile friendly, slide-in details */
@@ -332,3 +357,24 @@ body, .pt-topbar, .pt-detail-container, .pt-package-list-container, .pt-detail-f
 body.dark .pt-tracking-link {
   color: var(--accent-2);
 }
+
+.pt-details-body a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+body.dark .pt-details-body a {
+  color: var(--accent-2);
+}
+
+/* theme icon animation */
+.pt-theme-toggle .icon-sun,
+.pt-theme-toggle .icon-moon {
+  width: 20px;
+  height: 20px;
+  transition: opacity 200ms ease;
+}
+.pt-theme-toggle .icon-sun { opacity: 0; }
+.pt-theme-toggle .icon-moon { opacity: 1; }
+body.dark .pt-theme-toggle .icon-sun { opacity: 1; }
+body.dark .pt-theme-toggle .icon-moon { opacity: 0; }
