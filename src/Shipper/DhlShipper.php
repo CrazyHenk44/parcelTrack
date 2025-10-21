@@ -70,7 +70,7 @@ class DhlShipper implements ShipperInterface
         $unifiedEvents = [];
         foreach ($rawEvents as $rawEvent) {
             $unifiedEvents[] = new Event(
-                $rawEvent['timestamp'],
+                $rawEvent['localTimestamp'],
                 $this->translate($rawEvent['status']),
                 $rawEvent['facility'] ?? null
             );
@@ -98,7 +98,7 @@ class DhlShipper implements ShipperInterface
         } elseif (isset($shipment['plannedDeliveryTimeframe'])) {
             // This field is often a string like "2024-01-01T10:00:00/2024-01-01T12:00:00"
             $dateParts                 = explode('/', $shipment['plannedDeliveryTimeframe']);
-            $result->packageStatus     = sprintf("Geplande bezorging:<br>%s",
+            $result->packageStatus     = sprintf("Geplande bezorging: %s",
                     \ParcelTrack\Helpers\DateHelper::formatDutchDateRange($dateParts[0],$dateParts[1]));
 
             // This date is confusing.

@@ -108,10 +108,6 @@ foreach ($packagesToProcess as $existingResult) {
             $body .= "<b>Trackingcode:</b> {$newResult->trackingCode}<br>\r\n";
             $body .= "<b>Status:</b> {$newResult->packageStatus}</p>\r\n";
 
-            if ($newResult->eta) {
-                $body .= '<p><b>' . $newResult->eta . "</b></p>\r\n";
-            }
-
             $body .= "<h3>Laatste paar gebeurtenissen:</h3>\r\n";
             if (!empty($newResult->events)) {
                 // Sort events in descending order by timestamp

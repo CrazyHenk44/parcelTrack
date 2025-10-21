@@ -46,7 +46,7 @@ class DhlShipperTest extends TestCase
         $this->assertEquals('DHL', $result->shipper);
         $this->assertEquals($trackingCode, $result->trackingCode);
         $this->assertEquals($postalCode, $result->getPostalCode()); // Assuming getPostalCode() exists and is correct
-        $this->assertEquals('Geplande bezorging:<br>9 okt, 10u - 14u', $result->packageStatus);
+        $this->assertEquals('Geplande bezorging: 9 okt, 10u - 14u', $result->packageStatus);
         $this->assertEquals($responseBody, $result->rawResponse);
 
         // Assertions for Events
