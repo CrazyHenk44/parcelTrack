@@ -120,7 +120,9 @@ foreach ($packagesToProcess as $existingResult) {
 
                 $body .= "<ul>\r\n";
                 foreach ($latestEvents as $event) {
-                    $eventTimestamp = DateHelper::formatDutchDate($event->timestamp);
+                    $eventTimestamp = method_exists($event, 'prettyDate')
+                        ? $event->prettyDate()
+                        : DateHelper::formatDutchDate($event->timestamp);
                     $locationInfo   = $event->location ? " @ {$event->location}" : '';
                     $body .= "<li>[{$eventTimestamp}] {$event->description}{$locationInfo}</li>\r\n";
                 }

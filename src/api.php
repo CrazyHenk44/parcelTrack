@@ -175,7 +175,18 @@ switch ($requestMethod) {
             $helper = $shipperFactory->createDisplayHelper($package);
 
             if ($helper) {
-                $displayPackages[] = $helper->getDisplayData();
+                $d = $helper->getDisplayData();
+                if (isset($d['events'])) {
+                    $d['events'] = array_map(function(\ParcelTrack\Event $e) {
+                        return [
+                            'timestamp'   => $e->timestamp,
+                            'description' => $e->description,
+                            'location'    => $e->location,
+                            'prettyDate'  => $e->prettyDate(),
+                        ];
+                    }, $d['events']);
+                }
+                $displayPackages[] = $d;
             }
         }
 

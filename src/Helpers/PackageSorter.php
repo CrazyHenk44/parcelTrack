@@ -22,8 +22,8 @@ class PackageSorter
             }
 
             // Secondary sort: by most recent event timestamp (descending).
-            $tsA = !empty($a['events']) ? strtotime($a['events'][0]->timestamp) : 0;
-            $tsB = !empty($b['events']) ? strtotime($b['events'][0]->timestamp) : 0;
+            $tsA = !empty($a['events']) ? strtotime($a['events'][0]['timestamp'] ?? '') : 0;
+            $tsB = !empty($b['events']) ? strtotime($b['events'][0]['timestamp'] ?? '') : 0;
             return $tsB <=> $tsA;
         });
 
