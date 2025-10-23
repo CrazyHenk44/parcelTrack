@@ -130,10 +130,10 @@ class PostNLShipper implements ShipperInterface
         if ($postalCode !== null && $postalCode !== '') {
             // Use country if available, default to NL
             $countryForUrl = $country ?? 'NL';
-            return "https://jouw.postnl.nl/track-and-trace/trackingcode/{$trackingCode}/{$countryForUrl}/{$postalCode}";
+            return "https://jouw.postnl.nl/track-and-trace/{$trackingCode}/{$countryForUrl}/{$postalCode}";
         }
 
         // Fallback when postal code is not available
-        return "https://jouw.postnl.nl/track-and-trace/trackingcode/{$trackingCode}";
+        return "https://jouw.postnl.nl/track-and-trace/{$trackingCode}";
     }
 }
