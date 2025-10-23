@@ -15,6 +15,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
 
     private static array $displayConfig = [
         'Status'          => ['type' => 'status', 'path' => 'statusPhase.message'],
+        'Delivery'        => ['type' => 'person', 'path' => 'deliveryAddress'],
         'Recipient'       => ['type' => 'person', 'path' => 'recipient'],
         'Sender'          => ['type' => 'person', 'path' => 'sender'],
         'Weight'          => ['type' => 'weight', 'path' => 'details.dimensions.weight'],
@@ -23,6 +24,8 @@ class PostNLDisplayHelper implements DisplayHelperInterface
         'Map Link'        => ['type' => 'map_link', 'path' => 'retailDeliveryLocation.coordinate'],
         'Opening Hours'   => ['type' => 'opening_hours', 'path' => 'retailDeliveryLocation.businessHours'],
         'Extra Information' => ['type' => 'extra_information', 'path' => 'extraInformation'],
+        'Bezorging'       => 'deliveryAddressType',
+        'Bezorgfase'      => 'statusPhase.message'
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
@@ -60,6 +63,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
 
         $labelTranslations = [
             'Recipient'         => 'Ontvanger',
+            'Delivery'          => 'Afleveradres',
             'Sender'            => 'Afzender',
             'Weight'            => 'Gewicht',
             'Dimensions'        => 'Afmetingen',

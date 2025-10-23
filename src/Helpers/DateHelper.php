@@ -24,6 +24,23 @@ class DateHelper
     }
 
     /**
+     * Formats a date string into a Dutch "dd mmm" format.
+     * @param string $dateString The date string to format.
+     * @return string The formatted date.
+     */
+    public static function formatDutchDay(string $dateString): string
+    {
+        try {
+            $date       = new DateTime($dateString);
+            $monthIndex = (int)$date->format('n') - 1;
+            $months     = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+            return sprintf('%s %s', $date->format('d'), $months[$monthIndex]);
+        } catch (\Exception $e) {
+            return $dateString; // Fallback to the original string on error
+        }
+    }
+
+    /**
      * Formats a date range into Dutch pretty format: 'dd mmm, Hu - Hu' or with minutes if necessary.
      * @param string $startDateString Start date string.
      * @param string $endDateString End date string.

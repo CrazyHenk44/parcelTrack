@@ -75,6 +75,9 @@ class PostNLShipper implements ShipperInterface
 
         $unifiedEvents = [];
         foreach ($rawEvents as $rawEvent) {
+            if ($rawEvent['description'] == "leeg") {
+                continue;
+            }
             $unifiedEvents[] = new Event(
                 $rawEvent['observationDate'],
                 $rawEvent['description'],
@@ -105,6 +108,8 @@ class PostNLShipper implements ShipperInterface
 
             if ($colli['eta']['type'] == "OnlyFromTime") {
                 $result->packageStatus     = sprintf('Bezorging na %s', \ParcelTrack\Helpers\DateHelper::formatDutchDate($colli['eta']['start']));
+            } elseif ($colli['eta']['type'] == "WholeDay") {
+                $result->packageStatus     = sprintf('Bezorging op %s', \ParcelTrack\Helpers\DateHelper::formatDutchDay($colli['eta']['start']));
             } else {
                 $start                     = new \DateTime($colli['eta']['start']);
                 $end                       = new \DateTime($colli['eta']['end']);
