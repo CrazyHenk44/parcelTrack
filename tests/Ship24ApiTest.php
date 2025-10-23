@@ -51,7 +51,7 @@ class Ship24ApiTest extends TestCase
         // Assertions for Events
         $this->assertCount(1, $result->events);
         $event = $result->events[0];
-        $this->assertEquals('2025-10-14T12:12:37', $event->timestamp);
+        $this->assertEquals('2025-10-14T12:12:37.000Z', $event->timestamp);
         $this->assertEquals('Shipment information received', $event->description);
         $this->assertNull($event->location);
     }

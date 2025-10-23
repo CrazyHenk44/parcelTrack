@@ -81,17 +81,17 @@ class Ship24Shipper implements ShipperInterface
         $rawEvents    = $trackingInfo['events']     ?? [];
         $statistics   = $trackingInfo['statistics'] ?? [];
 
+        // Sort events in descending order (most recent first) based on the 'datetime' field (which is consistently UTC)
         usort($rawEvents, function ($a, $b) {
-            // Prefer occurrenceDatetime if available, otherwise fallback to datetime
-            $timeA = strtotime($b['occurrenceDatetime'] ?? $b['datetime']);
-            $timeB = strtotime($a['occurrenceDatetime'] ?? $a['datetime']);
-            return $timeA - $timeB;
+            $timeA = strtotime($a['datetime']);
+            $timeB = strtotime($b['datetime']);
+            return $timeB <=> $timeA; // Sort descending
         });
 
         $unifiedEvents = [];
         foreach ($rawEvents as $rawEvent) {
             $unifiedEvents[] = new Event(
-                $rawEvent['occurrenceDatetime'] ?? $rawEvent['datetime'], // Prefer occurrenceDatetime, let frontend format
+                $rawEvent['datetime'], // Always use 'datetime' for consistent UTC timestamp
                 $rawEvent['status'],
                 $rawEvent['location']
             );

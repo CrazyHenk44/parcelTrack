@@ -102,10 +102,15 @@ class PostNLShipper implements ShipperInterface
             $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $colli['deliveryDate'];
         } elseif (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
-            $start                     = new \DateTime($colli['eta']['start']);
-            $end                       = new \DateTime($colli['eta']['end']);
-            $result->packageStatus     = sprintf('Verwachte bezorging: %s, tussen %s en %s', DateHelper::formatDutchDate($colli['eta']['start']), $start->format('H:i'), $end->format('H:i'));
-            $result->packageStatusDate = $colli['eta']['start'];
+
+            if ($colli['eta']['type'] == "OnlyFromTime") {
+                $result->packageStatus     = sprintf('Bezorging na %s', \ParcelTrack\Helpers\DateHelper::formatDutchDate($colli['eta']['start']));
+            } else {
+                $start                     = new \DateTime($colli['eta']['start']);
+                $end                       = new \DateTime($colli['eta']['end']);
+                $result->packageStatus     = sprintf('Geplande bezorging: %s', \ParcelTrack\Helpers\DateHelper::formatDutchDateRange($colli['eta']['start'], $colli['eta']['end']));
+            }
+            $result->packageStatusDate = null;
         }
 
         return $result;

@@ -22,6 +22,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
         'Retail Location' => ['type' => 'address', 'path' => 'retailDeliveryLocation.address'],
         'Map Link'        => ['type' => 'map_link', 'path' => 'retailDeliveryLocation.coordinate'],
         'Opening Hours'   => ['type' => 'opening_hours', 'path' => 'retailDeliveryLocation.businessHours'],
+        'Extra Information' => ['type' => 'extra_information', 'path' => 'extraInformation'],
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
@@ -58,10 +59,11 @@ class PostNLDisplayHelper implements DisplayHelperInterface
         $formatted = [];
 
         $labelTranslations = [
-            'Recipient'  => 'Ontvanger',
-            'Sender'     => 'Afzender',
-            'Weight'     => 'Gewicht',
-            'Dimensions' => 'Afmetingen',
+            'Recipient'         => 'Ontvanger',
+            'Sender'            => 'Afzender',
+            'Weight'            => 'Gewicht',
+            'Dimensions'        => 'Afmetingen',
+            'Extra Information' => 'Extra informatie',
         ];
 
         foreach ($this->config as $label => $spec) {
@@ -117,6 +119,31 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                                     $lines[] = sprintf('%s: %s', $dayName, implode(', ', $hours));
                                 }
                                 $value = implode('<br>', $lines);
+                            }
+                            break;
+                        case 'extra_information':
+                            if (is_array($value)) {
+                                $infoLines = [];
+                                foreach ($value as $info) {
+                                    $line = [];
+                                    if (!empty($info->title)) {
+                                        $line[] = $info->title;
+                                    }
+                                    if (!empty($info->text)) {
+                                        $line[] = $info->text;
+                                    }
+                                    if (!empty($info->linkUrl) && !empty($info->linkText)) {
+                                        $line[] = sprintf('<a href="%s" target="_blank">%s</a>', $info->linkUrl, $info->linkText);
+                                    } elseif (!empty($info->linkUrl)) {
+                                        $line[] = sprintf('<a href="%s" target="_blank">%s</a>', $info->linkUrl, $info->linkUrl);
+                                    }
+                                    if (!empty($line)) {
+                                        $infoLines[] = implode(': ', $line);
+                                    }
+                                }
+                                $value = implode('<br>', $infoLines);
+                            } else {
+                                $value = null;
                             }
                             break;
                         default:
