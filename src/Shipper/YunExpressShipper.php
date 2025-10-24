@@ -3,12 +3,19 @@
 namespace ParcelTrack\Shipper;
 
 use ParcelTrack\Event;
+use ParcelTrack\Helpers\Logger;
 use ParcelTrack\TrackingResult;
 
 class YunExpressShipper implements ShipperInterface
 {
     private const POST_URL = 'https://services.yuntrack.com/Track/Query';
     private const SECRET   = 'f3c42837e3b46431ddf5d7db7d67017d';
+    private Logger $logger;
+
+    public function __construct(Logger $logger)
+    {
+        $this->logger = $logger;
+    }
 
     public function getRequiredFields(): array
     {
@@ -43,6 +50,8 @@ class YunExpressShipper implements ShipperInterface
             'User-Agent: Mozilla/5.0'
         ];
 
+        $this->logger->log("Fetching YunExpress tracking data for {$trackingCode} from " . self::POST_URL, Logger::INFO);
+
         // Execute HTTP POST
         $ch = curl_init(self::POST_URL);
         curl_setopt_array($ch, [
@@ -57,9 +66,12 @@ class YunExpressShipper implements ShipperInterface
         curl_close($ch);
 
         if ($response === false) {
-            // Handle curl error, maybe log it
+            $this->logger->log("Curl error for YunExpress tracking code {$trackingCode}: " . curl_error($ch), Logger::ERROR);
             return null;
         }
+
+        $this->logger->log("Received response from YunExpress for {$trackingCode}: " . $response, Logger::DEBUG);
+
         $res = $this->getTrackingResult($trackingCode, $response);
         return $res;
     }
@@ -72,6 +84,7 @@ class YunExpressShipper implements ShipperInterface
 
         $data = json_decode($apiResponse, true);
         if (!isset($data['ResultList'][0]['TrackInfo']['TrackEventDetails'])) {
+            $this->logger->log("Invalid response structure from YunExpress for {$trackingCode}", Logger::ERROR);
             return null;
         }
 

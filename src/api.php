@@ -8,14 +8,17 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use ParcelTrack\Helpers\Config;
 use ParcelTrack\Helpers\Logger;
+use ParcelTrack\Helpers\NotificationService; // Import NotificationService
 use ParcelTrack\Helpers\PackageSorter;
 use ParcelTrack\Helpers\StorageService;
 use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
 use ParcelTrack\Shipper\ShipperFactory;
 
-$config  = new Config();
-$logger  = new Logger($config->logLevel); // Use log level from Config.php
-$storage = new StorageService();
+$config              = new Config();
+$logger              = new Logger($config->logLevel); // Use log level from Config.php
+$storage             = new StorageService();
+$notificationService = new NotificationService($logger, $config); // Initialize NotificationService
+$logger->log("API: Loaded Apprise URL from config: '{$config->appriseUrl}'", Logger::DEBUG);
 
 $shipperFactory = new ShipperFactory($logger, $config);
 
@@ -60,13 +63,20 @@ switch ($requestMethod) {
                 if (!empty($customName)) {
                     $result->metadata->customName = strip_tags($customName);
                 }
-                if (!empty($input['contactEmail']) && filter_var(trim($input['contactEmail']), FILTER_VALIDATE_EMAIL)) { // Allow user to override default
-                    $result->metadata->contactEmail = trim($input['contactEmail']);
-                } else {
-                    $result->metadata->contactEmail = $config->defaultEmail; // Set mandatory default if not provided or invalid
-                }
+                // Set Apprise URL: if provided in input, use it; otherwise, use the default from config
+                $result->metadata->appriseUrl = !empty($input['appriseUrl']) ? trim($input['appriseUrl']) : $config->appriseUrl;
                 $storage->save($result);
                 $logger->log("POST: Package {$trackingCode} added successfully.", Logger::INFO);
+
+                // Send notification for new package
+                $logger->log("POST: Attempting to send notification for package {$trackingCode} to Apprise URL: {$result->metadata->appriseUrl}", Logger::INFO);
+                try {
+                    $notificationService->sendPackageNotification($result);
+                    $logger->log("POST: Notification for package {$trackingCode} sent successfully.", Logger::INFO);
+                } catch (\Exception $notificationException) {
+                    $logger->log("POST: Failed to send notification for package {$trackingCode}. Error: " . $notificationException->getMessage(), Logger::ERROR);
+                }
+
                 echo json_encode(['success' => true, 'message' => "Pakket {$trackingCode} succesvol toegevoegd."]);
             }
         } catch (\Exception $e) {
@@ -103,11 +113,10 @@ switch ($requestMethod) {
             $updated = true;
         }
 
-        if (array_key_exists('contactEmail', $input)) {
-            $contactEmail = trim($input['contactEmail']);
-            // Basic validation, can be improved
-            $package->metadata->contactEmail = filter_var($contactEmail, FILTER_VALIDATE_EMAIL) ? $contactEmail : ($contactEmail === '' ? null : $package->metadata->contactEmail);
-            $logger->log("PUT: Set contact email for {$packageId} to '{$contactEmail}'.", Logger::INFO);
+        if (array_key_exists('appriseUrl', $input)) {
+            $appriseUrl = trim($input['appriseUrl']);
+            $package->metadata->appriseUrl = ($appriseUrl === '') ? null : $appriseUrl;
+            $logger->log("PUT: Set Apprise URL for {$packageId} to '{$appriseUrl}'.", Logger::INFO);
             $updated = true;
         }
 
@@ -156,8 +165,8 @@ switch ($requestMethod) {
             echo json_encode([
                 'shippers' => $availableShippers,
                 'defaults' => [
-                    'email'   => $config->defaultEmail,
-                    'country' => $config->defaultCountry
+                    'country'   => $config->defaultCountry,
+                    'appriseUrl' => $config->appriseUrl // Add default Apprise URL
                 ]
             ]);
             exit;

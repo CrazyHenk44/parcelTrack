@@ -35,7 +35,7 @@ class ShipperFactory
                 }
                 return null;
             case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
-                return new YunExpressShipper();
+                return new YunExpressShipper($this->logger);
             default:
                 return null;
         }

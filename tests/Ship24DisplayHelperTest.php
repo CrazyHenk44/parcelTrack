@@ -48,7 +48,7 @@ class Ship24DisplayHelperTest extends TestCase
         ]);
 
         $trackingResult->metadata->status       = PackageStatus::Active;
-        $trackingResult->metadata->contactEmail = 'test@example.com';
+        $trackingResult->metadata->appriseUrl = 'apprise://localhost';
         $trackingResult->metadata->customName   = 'Test Package';
 
         return $trackingResult;

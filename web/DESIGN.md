@@ -49,7 +49,7 @@ The "+" button in the top-right corner opens a modal wizard that guides users th
    
    Step 1: Basic Information
    - Package description (mandatory)
-   - Notification email (mandatory, prefilled with defaultEmail from api.php)
+   - Apprise URL (optional, prefilled with defaultAppriseUrl from api.php)
    
    Step 2: Shipper Selection
    - Grid of shipper options loaded from `api.php?shippers=1`
@@ -81,20 +81,19 @@ API Contract Additions:
       }] 
     }],
     "defaults": {
-      "email": "string|null",
+      "appriseUrl": "string|null",
       "country": "string"
     }
   }
   ```
-- POST `api.php` accepts: `{ shipper, trackingCode, customName, contactEmail, ...extraFields }`
+- POST `api.php` accepts: `{ shipper, trackingCode, customName, appriseUrl, ...extraFields }`
 
 Environment Configuration:
 1. Added new environment variables:
    - `DEFAULT_COUNTRY`: Default country code for shipments (defaults to 'NL')
-   - `DEFAULT_EMAIL`: Default notification email address
 
 2. Configuration Updates:
-   - Moved defaults (email, country) to the shippers API endpoint
+   - Moved defaults (appriseUrl, country) to the shippers API endpoint
    - These defaults are used to pre-fill form fields and simplify the user experience
    - Defaults can be overridden per package during creation
 
@@ -187,13 +186,13 @@ API contract (server -> frontend)
   - packageStatus (string)
   - packageStatusDate (ISO timestamp string)
   - customName (string, optional)
-  - metadata: { status: 'active'|'inactive', contactEmail: '...' }
+  - metadata: { status: 'active'|'inactive', appriseUrl: '...' }
   - trackUrl (string, optional)
   - formattedDetails: { label: htmlString }  // keys = label, values = HTML or plain text
   - events: [ { timestamp: ISO, description: string, location?: string } ]
 
 Frontend -> server
-- PUT `api.php` accepts JSON bodies like { shipper, trackingCode, customName? , status? , contactEmail? }
+- PUT `api.php` accepts JSON bodies like { shipper, trackingCode, customName? , status? , appriseUrl? }
 - DELETE `api.php` accepts JSON bodies like { shipper, trackingCode }
 
 Accessibility notes

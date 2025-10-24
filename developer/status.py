@@ -2,6 +2,7 @@ import curses
 import os
 import json
 import time
+import subprocess
 from datetime import datetime, timezone
 
 DATA_DIR = '/opt/parceltrack/data/'
@@ -72,6 +73,47 @@ def draw_list_view(stdscr, packages, current_row):
 
     stdscr.addstr(h - 1, 0, "Arrows: Navigate | Enter: Details | r: Refresh | q: Quit")
     stdscr.refresh()
+
+def send_package_notification(stdscr, package):
+    """Sends a notification for a specific package using Apprise."""
+    h, w = stdscr.getmaxyx()
+    stdscr.addstr(h - 2, 0, "Sending notification...", curses.A_REVERSE)
+    stdscr.refresh()
+
+    apprise_url = os.getenv('APPRISE_URL')
+    if not apprise_url:
+        stdscr.addstr(h - 2, 0, "APPRISE_URL not set. Press any key to continue.", curses.A_REVERSE)
+        stdscr.getch()
+        return
+
+    shipper = package.get('shipper', 'N/A')
+    tracking_code = package.get('trackingCode', 'N/A')
+    display_name = package.get('customName') or f"{shipper} - {tracking_code}"
+    status = package.get('packageStatus', 'N/A')
+
+    title = f"ParcelTrack Update: {display_name}"
+    body = f"Package: {display_name}\n" \
+           f"Shipper: {shipper}\n" \
+           f"Tracking Code: {tracking_code}\n" \
+           f"Current Status: {status}"
+
+    command = [
+        'apprise',
+        '-t', title,
+        '-b', body,
+    ]
+    command.extend(apprise_url.split())
+
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True)
+        stdscr.addstr(h - 2, 0, "Notification sent successfully! Press any key.", curses.A_REVERSE)
+    except FileNotFoundError:
+        stdscr.addstr(h - 2, 0, "'apprise' command not found. Press any key.", curses.A_REVERSE)
+    except subprocess.CalledProcessError as e:
+        error_message = e.stderr.strip().splitlines()[-1]
+        stdscr.addstr(h - 2, 0, f"Error sending notification: {error_message[:w-10]}... Press any key.", curses.A_REVERSE)
+    
+    stdscr.getch()
 
 def draw_raw_json_view(stdscr, package):
     stdscr.clear()
@@ -168,7 +210,7 @@ def draw_detail_view(stdscr, package):
                 line = f"- [{ts}] {description}{location_str}"
                 stdscr.addstr(i + 5, 2, line[:w-1])
 
-        stdscr.addstr(h - 1, 0, "b/q: Back | j: Show Raw JSON")
+        stdscr.addstr(h - 1, 0, "b/q: Back | j: Show Raw JSON | n: Send Notification")
         stdscr.refresh()
 
         key = stdscr.getch()
@@ -176,6 +218,8 @@ def draw_detail_view(stdscr, package):
             break
         elif key == ord('j'):
             draw_raw_json_view(stdscr, package)
+        elif key == ord('n'):
+            send_package_notification(stdscr, package)
 
 
 def main(stdscr):

@@ -23,7 +23,7 @@ This section summarizes the current state of the application and key technical d
 -   **`ShipperInterface.php`**: A common interface for all shipper classes, ensuring a consistent `fetch()` method.
 -   **`TrackingResult.php`**: A unified class that holds standardized tracking information from all shippers.
 -   **`Event.php`**: A class representing a single, unified tracking event.
--   **`PackageMetadata.php` & `PackageStatus.php`**: Enums and classes for managing package metadata like custom names, contact emails, and active/inactive status.
+-   **`PackageMetadata.php` & `PackageStatus.php`**: Enums and classes for managing package metadata like custom names, Apprise URLs, and active/inactive status.
 -   **`StorageService.php`**: Handles reading and writing package data to JSON files in the `data/` directory.
 -   **`Logger.php`**: A simple logger that outputs messages to `stdout`, suitable for containerized environments.
 
@@ -47,7 +47,7 @@ A modern, responsive single-page application for managing and viewing packages.
 
 ### Automation
 
--   **`cron.php`**: A script designed for periodic execution (e.g., via a cron job). It iterates through all `active` packages, fetches the latest tracking information, and sends an HTML email notification if a status change is detected. Delivered packages are automatically marked as `inactive`.
+-   **`cron.php`**: A script designed for periodic execution (e.g., via a cron job). It iterates through all `active` packages, fetches the latest tracking information, and sends an Apprise notification if a status change is detected. Delivered packages are automatically marked as `inactive`.
 
 ### CLI Tools
 

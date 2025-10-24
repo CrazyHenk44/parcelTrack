@@ -10,7 +10,7 @@ This list covers everything from documentation and security to code quality and 
 ### 2. 🧹 Final Polish
 
 - [ ] Review all code for leftover comments, `var_dump()` calls, or debugging artifacts.
-- [ ] Perform a final end-to-end test of all features: adding, updating, deleting, and receiving email notifications.
+- [ ] Perform a final end-to-end test of all features: adding, updating, deleting, and receiving Apprise notifications.
 - [ ] Ensure all user-facing strings are consistently Dutch or provide an option for language switching.
 
 ### 3. 🚀 Optimizations & Best Practices
@@ -23,9 +23,7 @@ This list covers everything from documentation and security to code quality and 
     - [ ] **Response Structure:** Standardize API response structure (e.g., always include `status`, `message`, and `data` fields).
     - [ ] **Shipper Error Messages:** Instead of hardcoding shipper names in error messages, dynamically list supported shippers from `ShipperFactory`.
 - [ ] **`src/cron.php`:**
-    - [ ] **Mailer Service:** Extract email sending logic into a dedicated `MailerService` class. This would improve testability and allow for easier switching between `mail()` and more robust solutions like `PHPMailer` or `Symfony Mailer`.
-    - [ ] **Email Templating:** Use a simple templating engine (even basic `sprintf` with a template file) for HTML email bodies instead of extensive string concatenation. This improves readability and maintainability and reduces XSS risk.
-    - [ ] **`mail()` Function:** Consider replacing the native `mail()` function with a more robust library (e.g., `PHPMailer`, `Symfony Mailer`) for better error reporting, SMTP support, and feature richness.
+    - [ ] **Notification Service:** Refactor notification sending logic to fully leverage Apprise. This would involve removing any legacy email-specific code and ensuring all notifications are sent via Apprise.
     - [ ] **DateHelper Duplication:** The `DateHelper::formatDutchDate` is duplicated in `DisplayHelperTrait`. Consolidate to a single source of truth.
 - [ ] **`src/DhlDisplayHelper.php` / `src/PostNLDisplayHelper.php` / `src/Ship24DisplayHelper.php`:**
     - [ ] **HTML Generation:** Instead of direct HTML string concatenation, consider a more structured approach for generating display data (e.g., returning an array of structured data that the frontend then renders, or using a micro-templating approach). This improves separation of concerns and reduces XSS risk.

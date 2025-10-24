@@ -11,7 +11,6 @@ RUN apk add --no-cache \
     libzip-dev \
     nginx \
     supervisor \
-    msmtp \
     icu-dev \
     python3 \
     py3-pip \
@@ -50,7 +49,8 @@ FROM php:8.2-fpm-alpine
 WORKDIR /opt/parceltrack
 
 # Install only the necessary production system dependencies
-RUN apk add --no-cache gettext nginx supervisor msmtp icu-dev curl-dev libzip-dev
+RUN apk add --no-cache gettext nginx supervisor icu-dev curl-dev libzip-dev python3 py3-pip
+RUN pip install apprise --break-system-packages
 RUN docker-php-ext-install -j$(nproc) curl zip intl
 
 # Copy configurations into their final locations
@@ -60,8 +60,7 @@ COPY docker/php/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/php/crontab /var/spool/cron/crontabs/root
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 
-# Copy the msmtp config template and the entrypoint script
-COPY docker/php/msmtprc /etc/msmtprc.template
+# Copy the entrypoint script
 COPY docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 # Copy application source and production dependencies from the builder stage

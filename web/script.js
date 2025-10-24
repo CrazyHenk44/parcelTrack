@@ -17,8 +17,8 @@
   // map of id -> full package object from API
   const serverPackages = {}
   // config-driven defaults (populated from API)
-  let defaultEmail = ''
   let defaultCountry = 'NL'
+  let defaultAppriseurl = ''
 
   function formatDutchDateIso(iso){
     if(!iso) return ''
@@ -166,6 +166,8 @@
         }
         detailsBody.appendChild(fd)
       }
+
+      // Apprise URL is now managed by a button in the footer, not displayed directly here.
     } else {
       const pkg = PACKAGES.find(p=>p.id===id)
       detailsBody.innerHTML = `
@@ -217,6 +219,22 @@
     // refresh label when selection changes
     document.addEventListener('selectionchange', updateActivateLabel)
   }
+  // Add notifications button and its event listener
+  const notificationsBtn = document.getElementById('pt-notifications')
+  if(notificationsBtn){
+    notificationsBtn.addEventListener('click', ()=>{
+      if(!selectedId) return alert('Selecteer eerst een pakket')
+      const pkg = serverPackages[selectedId]
+      const appriseUrl = (pkg.metadata && pkg.metadata.appriseUrl) ? pkg.metadata.appriseUrl : defaultAppriseurl
+      const newUrl = prompt('Enter new Apprise URL (leave empty to use global URL)', appriseUrl)
+      if(newUrl !== null){
+        const shipper = pkg.shipper
+        const trackingCode = pkg.trackingCode || pkg.code
+        apiPut({shipper, trackingCode, appriseUrl: newUrl.trim()}).then(()=>loadPackagesFromApi())
+      }
+    })
+  }
+
   if(deleteBtn){
     deleteBtn.addEventListener('click', async ()=>{
       if(!selectedId) return alert('Selecteer eerst een pakket')
@@ -451,7 +469,6 @@
   let availableShippers = []
   let wizardData = {
     description: '',
-    email: '',
     shipper: '',
     trackingNumber: '',
     extraFields: {},
@@ -466,8 +483,8 @@
       const data = await response.json()
       availableShippers = data.shippers
       if (data.defaults) {
-        defaultEmail = data.defaults.email || ''
         defaultCountry = data.defaults.country || 'NL'
+        defaultAppriseurl = data.defaults.appriseUrl || '' // Now reading 'appriseUrl' (plural)
       }
     } catch (error) {
       console.error('Failed to load shippers:', error)
@@ -481,7 +498,6 @@
         currentStep = 1
         wizardData = {
           description: '',
-          email: defaultEmail,
           shipper: '',
           trackingNumber: '',
           extraFields: {},
@@ -489,14 +505,11 @@
         }
         wizard.setAttribute('aria-hidden', 'false')
         showWizardStep(1)
-        // set email input from defaults
-        try{ if (defaultEmail) document.getElementById('pt-notify-email').value = defaultEmail }catch(e){}
       })
     } else {
       currentStep = 1
       wizardData = {
         description: '',
-        email: defaultEmail,
         shipper: '',
         trackingNumber: '',
         extraFields: {},
@@ -504,7 +517,6 @@
       }
       wizard.setAttribute('aria-hidden', 'false')
       showWizardStep(1)
-      try{ if (defaultEmail) document.getElementById('pt-notify-email').value = defaultEmail }catch(e){}
     }
   }
   
@@ -549,9 +561,8 @@
     }
     
     if (step === 1) {
-      // prefill description and email inputs
+      // prefill description input
       try{ document.getElementById('pt-package-desc').value = wizardData.description || '' }catch(e){}
-      try{ document.getElementById('pt-notify-email').value = wizardData.email || defaultEmail || '' }catch(e){}
     }
 
     if (step === 3 && wizardData.shipper) {
@@ -575,19 +586,14 @@
   async function validateStep(step) {
     if (step === 1) {
       const desc = document.getElementById('pt-package-desc').value.trim()
-      const email = document.getElementById('pt-notify-email').value.trim()
       
       if (!desc) {
         alert('Please enter a package description')
         return false
       }
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        alert('Please enter a valid email address')
-        return false
-      }
       
       wizardData.description = desc
-      wizardData.email = email
+      // No appriseUrl input field to validate in step 1 anymore
       return true
     }
     
@@ -637,7 +643,7 @@
           shipper: wizardData.shipper,
           trackingCode: wizardData.trackingNumber,
           customName: wizardData.description,
-          contactEmail: wizardData.email,
+          appriseUrl: defaultAppriseurl, // Silently set to defaultAppriseurl
           ...wizardData.extraFields
         })
       })

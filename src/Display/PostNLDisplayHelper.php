@@ -50,7 +50,7 @@ class PostNLDisplayHelper implements DisplayHelperInterface
             'events'            => $this->package->events,
             'metadata'          => [
                 'status'       => $this->package->metadata->status->value,
-                'contactEmail' => $this->package->metadata->contactEmail,
+                'appriseUrl' => $this->package->metadata->appriseUrl,
             ],
             'trackingLink'     => $this->getTrackingLink($this->package),
             'formattedDetails' => $this->formatDetails(),
