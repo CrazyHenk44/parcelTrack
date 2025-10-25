@@ -13,7 +13,7 @@ class PackageMetadata
 
     public static function fromObject(\stdClass $data): self
     {
-        $appriseUrl = $data->appriseUrl;
+        $appriseUrl = property_exists($data, "appriseUrl") ? $data->appriseUrl : '';
         if (empty($appriseUrl)) {
             $appriseUrl = (new \ParcelTrack\Helpers\Config())->appriseUrl;
         }
