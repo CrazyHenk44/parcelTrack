@@ -18,6 +18,12 @@ class StorageService
     public function save(TrackingResult $result): void
     {
         $filename = $this->storagePath . $result->shipper . '_' . $result->trackingCode . '.json';
+
+        $config = new Config();
+        if ($result->metadata->appriseUrl === $config->appriseUrl) {
+            $result->metadata->appriseUrl = '';
+        }
+
         file_put_contents($filename, json_encode($result, JSON_PRETTY_PRINT));
     }
 
