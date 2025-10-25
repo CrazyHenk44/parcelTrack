@@ -65,10 +65,10 @@ class NotificationService
         $body .= "\nParcelTrack: {$this->config->parcelTrackUrl}";
 
         $command = sprintf(
-            '/usr/bin/apprise --debug -t %s -b %s %s', // Add --debug flag directly to the command
+            '/usr/bin/apprise --debug -t %s -b %s %s',
             escapeshellarg($title),
             escapeshellarg($body),
-            $appriseUrl
+            implode(' ', array_map('escapeshellarg', explode(' ', $appriseUrl)))
         );
 
         $this->logger->log("Attempting to execute Apprise command using proc_open.", Logger::DEBUG);

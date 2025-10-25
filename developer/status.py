@@ -86,6 +86,12 @@ def send_package_notification(stdscr, package):
         stdscr.getch()
         return
 
+    # Strip quotes from the apprise_url if present
+    apprise_url = apprise_url.strip('"')
+
+    # Split the URLs and strip quotes from each individual URL
+    apprise_urls = [url.strip("'\"") for url in apprise_url.split()]
+
     shipper = package.get('shipper', 'N/A')
     tracking_code = package.get('trackingCode', 'N/A')
     display_name = package.get('customName') or f"{shipper} - {tracking_code}"
@@ -102,7 +108,7 @@ def send_package_notification(stdscr, package):
         '-t', title,
         '-b', body,
     ]
-    command.extend(apprise_url.split())
+    command.extend(apprise_urls)
 
     try:
         subprocess.run(command, check=True, capture_output=True, text=True)

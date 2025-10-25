@@ -8,19 +8,17 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use ParcelTrack\Helpers\Config;
 use ParcelTrack\Helpers\Logger;
-use ParcelTrack\Helpers\NotificationService; // Import NotificationService
+use ParcelTrack\Helpers\NotificationService;
 use ParcelTrack\Helpers\PackageSorter;
 use ParcelTrack\Helpers\StorageService;
-use ParcelTrack\Shipper\ShipperConstants; // Import ShipperConstants
+use ParcelTrack\Shipper\ShipperConstants;
 use ParcelTrack\Shipper\ShipperFactory;
 
 $config              = new Config();
-$logger              = new Logger($config->logLevel); // Use log level from Config.php
+$logger              = new Logger($config->logLevel);
 $storage             = new StorageService();
-$notificationService = new NotificationService($logger, $config); // Initialize NotificationService
-$logger->log("API: Loaded Apprise URL from config: '{$config->appriseUrl}'", Logger::DEBUG);
-
-$shipperFactory = new ShipperFactory($logger, $config);
+$notificationService = new NotificationService($logger, $config);
+$shipperFactory      = new ShipperFactory($logger, $config);
 
 // Determine request method, default to GET for CLI testing
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';

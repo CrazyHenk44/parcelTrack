@@ -16,9 +16,9 @@ $storage = new StorageService();
 $notificationService = new NotificationService($logger, $config);
 
 // Parse command-line options
-$options = getopt('fp:', ['force', 'no-notification', 'package:']);
-$force   = isset($options['f']) || isset($options['force']);
+$options = getopt('p:', ['no-notification', 'force-notification', 'package:']);
 $noNotification  = isset($options['no-notification']);
+$forceNotification = isset($options['force-notification']);
 $packageNumber = $options['p'] ?? $options['package'] ?? null;
 if ($packageNumber !== null) {
     $packageNumber = trim($packageNumber);
@@ -35,13 +35,10 @@ if ($packageNumber !== null) {
     });
     $logger->log('Filtering to package ' . $packageNumber . '. Found ' . count($packagesToProcess) . ' packages.', Logger::INFO);
 } else {
-    $packagesToProcess = $allResults;
-    if (!$force) {
-        $packagesToProcess = array_filter($allResults, function ($package) {
-            // Default to active if metadata or status is somehow missing for old packages
-            return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
-        });
-    }
+    $packagesToProcess = array_filter($allResults, function ($package) {
+        // Default to active if metadata or status is somehow missing for old packages
+        return ($package->metadata->status ?? PackageStatus::Active) === PackageStatus::Active;
+    });
 }
 
 $logger->log('Found ' . count($allResults) . ' total packages. Processing ' . count($packagesToProcess) . ' packages.', Logger::INFO);
@@ -74,33 +71,34 @@ foreach ($packagesToProcess as $existingResult) {
 
         // Always check if the package is delivered and update its active/inactive status.
         // This should happen even if the text status hasn't changed.
-        $needsSave = $force; // If force is enabled, always save processed packages
         if ($newResult->isCompleted && $newResult->metadata->status === PackageStatus::Active) {
             $newResult->metadata->status = PackageStatus::Inactive;
             $logger->log("Package {$trackingCode} marked as delivered. Set status to INACTIVE.", Logger::INFO);
-            $needsSave = true; // Also save if status changes to inactive
         }
 
         $oldStatus     = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
         $statusChanged = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
 
-        // Send a notification if the status text has changed or if mailing is forced, and no-notification option is not set.
-        if (($statusChanged || $force) && !$noNotification) {
+        // Determine if a notification should be sent
+        $shouldSendNotification = false;
+        if ($forceNotification) {
+            $shouldSendNotification = true;
+        } elseif (!$noNotification && $statusChanged) {
+            $shouldSendNotification = true;
+        }
+
+        if ($shouldSendNotification) {
             if ($statusChanged) {
                 $logger->log("Status changed for {$trackingCode}: {$oldStatus} -> {$newResult->packageStatus}", Logger::INFO);
             } else {
                 $logger->log("Force-mailing status for {$trackingCode} (status unchanged: {$newResult->packageStatus})", Logger::INFO);
             }
-
             $notificationService->sendPackageNotification($newResult);
-            $needsSave = true; // Mark for saving after sending notification
         } else {
             $logger->log("Status for {$trackingCode} remains {$newResult->packageStatus}", Logger::DEBUG);
         }
 
-        if ($needsSave) {
-            $storage->save($newResult);
-        }
+        $storage->save($newResult);
     } else {
         $logger->log('No shipper found for tracking code: ' . $trackingCode, Logger::ERROR);
     }
