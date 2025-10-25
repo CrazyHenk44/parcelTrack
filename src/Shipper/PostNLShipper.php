@@ -104,8 +104,8 @@ class PostNLShipper implements ShipperInterface
         if ($result->isCompleted && isset($colli['deliveryDate'])) {
             $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $colli['deliveryDate'];
-        } elseif (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
-
+        } elseif (!$colli["isAtRetailLocation"] &&
+                isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
             if ($colli['eta']['type'] == "OnlyFromTime") {
                 $result->packageStatus     = sprintf('Bezorging na %s', \ParcelTrack\Helpers\DateHelper::formatDutchDate($colli['eta']['start']));
             } elseif ($colli['eta']['type'] == "WholeDay") {

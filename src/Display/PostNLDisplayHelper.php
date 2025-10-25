@@ -15,17 +15,16 @@ class PostNLDisplayHelper implements DisplayHelperInterface
 
     private static array $displayConfig = [
         'Status'          => ['type' => 'status', 'path' => 'statusPhase.message'],
+        'Bezorging'       => 'deliveryAddressType',
+        'Retail Location' => ['type' => 'address', 'path' => 'retailDeliveryLocation.address'],
+        'Map Link'        => ['type' => 'map_link', 'path' => 'retailDeliveryLocation.coordinate'],
+        'Opening Hours'   => ['type' => 'opening_hours', 'path' => 'retailDeliveryLocation.businessHours'],
         'Delivery'        => ['type' => 'person', 'path' => 'deliveryAddress'],
         'Recipient'       => ['type' => 'person', 'path' => 'recipient'],
         'Sender'          => ['type' => 'person', 'path' => 'sender'],
         'Weight'          => ['type' => 'weight', 'path' => 'details.dimensions.weight'],
         'Dimensions'      => ['type' => 'dimensions', 'path' => 'details.dimensions'],
-        'Retail Location' => ['type' => 'address', 'path' => 'retailDeliveryLocation.address'],
-        'Map Link'        => ['type' => 'map_link', 'path' => 'retailDeliveryLocation.coordinate'],
-        'Opening Hours'   => ['type' => 'opening_hours', 'path' => 'retailDeliveryLocation.businessHours'],
         'Extra Information' => ['type' => 'extra_information', 'path' => 'extraInformation'],
-        'Bezorging'       => 'deliveryAddressType',
-        'Bezorgfase'      => 'statusPhase.message'
     ];
 
     public function __construct(TrackingResult $package, Logger $logger)
@@ -103,11 +102,10 @@ class PostNLDisplayHelper implements DisplayHelperInterface
                             $value = $value ? sprintf('%dx%dx%d', $value->depth, $value->width, $value->height) : null;
                             break;
                         case 'address':
-                            $addressParts = $this->formatAddress($value, false); // PostNL formatAddress doesn't need the flag
+                            $addressParts = $this->formatAddress($value, true);
                             if ($label === 'Retail Location' && isset($this->details->retailDeliveryLocation->locationName)) {
                                 array_unshift($addressParts, $this->details->retailDeliveryLocation->locationName);
                             }
-                            // The formatAddress in the trait already returns an array of strings.
                             $value = implode(', ', $addressParts);
                             break;
                         case 'map_link':
