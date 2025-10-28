@@ -39,7 +39,13 @@ switch ($requestMethod) {
 
         $shipper = $shipperFactory->create($shipperName);
         if (!$shipper) {
-            $supportedShippers = implode(', ', [ShipperConstants::DHL, ShipperConstants::POSTNL, ShipperConstants::SHIP24]);
+            $supportedShippers = implode(', ', [
+                ShipperConstants::DHL,
+                ShipperConstants::POSTNL,
+                ShipperConstants::SHIP24,
+                ShipperConstants::YUNEXPRESS,
+                ShipperConstants::GOFOEXPRESS
+            ]);
             $logger->log("POST: Unknown shipper '{$shipperName}'.", Logger::ERROR);
             echo json_encode(['success' => false, 'message' => "Onbekende vervoerder '{$shipperName}'. Ondersteunde vervoerders zijn {$supportedShippers}."]);
             exit;

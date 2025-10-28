@@ -15,6 +15,9 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     ncurses-dev
+RUN apk add --no-cache nodejs npm chromium
+RUN npm install puppeteer
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Install PHP extensions
 RUN docker-php-ext-install -j$(nproc) \
@@ -50,6 +53,9 @@ WORKDIR /opt/parceltrack
 
 # Install only the necessary production system dependencies
 RUN apk add --no-cache gettext nginx supervisor icu-dev curl-dev libzip-dev python3 py3-pip
+RUN apk add --no-cache nodejs npm chromium
+RUN npm install puppeteer
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 RUN pip install apprise --break-system-packages
 RUN docker-php-ext-install -j$(nproc) curl zip intl
 

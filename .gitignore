@@ -15,3 +15,6 @@
 .env
 .php-cs-fixer.cache
 supervisord.pid
+node_modules
+package-lock.json
+package.json

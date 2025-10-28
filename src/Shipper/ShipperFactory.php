@@ -7,6 +7,7 @@ use ParcelTrack\Display\DisplayHelperInterface;
 use ParcelTrack\Display\PostNLDisplayHelper;
 use ParcelTrack\Display\Ship24DisplayHelper;
 use ParcelTrack\Display\YunExpressDisplayHelper;
+use ParcelTrack\Display\GofoDisplayHelper;
 use ParcelTrack\Helpers\Config;
 use ParcelTrack\Helpers\Logger;
 use ParcelTrack\TrackingResult;
@@ -36,6 +37,8 @@ class ShipperFactory
                 return null;
             case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
                 return new YunExpressShipper($this->logger);
+            case \ParcelTrack\Shipper\ShipperConstants::GOFOEXPRESS:
+                return new GofoExpressShipper($this->logger);
             default:
                 return null;
         }
@@ -63,6 +66,11 @@ class ShipperFactory
                 'id'     => ShipperConstants::YUNEXPRESS,
                 'name'   => 'YunExpress',
                 'fields' => $this->create(ShipperConstants::YUNEXPRESS)->getRequiredFields()
+            ],
+            [
+                'id'     => ShipperConstants::GOFOEXPRESS,
+                'name'   => 'GofoExpress',
+                'fields' => $this->create(ShipperConstants::GOFOEXPRESS)->getRequiredFields()
             ]
         ];
 
@@ -88,10 +96,12 @@ class ShipperFactory
                 return new PostNLDisplayHelper($package, $this->logger);
             case \ParcelTrack\Shipper\ShipperConstants::SHIP24:
                 return new Ship24DisplayHelper($package, $this->logger);
-            case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
-                return new YunExpressDisplayHelper($package, $this->logger);
-            default:
-                return null;
+        case \ParcelTrack\Shipper\ShipperConstants::YUNEXPRESS:
+            return new YunExpressDisplayHelper($package, $this->logger);
+        case \ParcelTrack\Shipper\ShipperConstants::GOFOEXPRESS:
+            return new GofoDisplayHelper($package, $this->logger);
+        default:
+            return null;
         }
     }
 }

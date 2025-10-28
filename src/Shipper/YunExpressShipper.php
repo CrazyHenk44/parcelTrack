@@ -111,6 +111,7 @@ class YunExpressShipper implements ShipperInterface
             'rawResponse'   => $apiResponse ?? ''
         ]);
 
+        $tr->packageStatusDate = $latestStatusDate;
         $tr->events = $events;
         return $tr;
     }

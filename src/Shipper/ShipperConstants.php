@@ -8,4 +8,5 @@ class ShipperConstants
     public const POSTNL     = 'PostNL';
     public const SHIP24     = 'Ship24';
     public const YUNEXPRESS = 'YunExpress';
+    public const GOFOEXPRESS = 'GofoExpress';
 }
