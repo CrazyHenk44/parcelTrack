@@ -111,6 +111,10 @@ class YunExpressShipper implements ShipperInterface
             'rawResponse'   => $apiResponse ?? ''
         ]);
 
+        if ($data['ResultList'][0]['TrackData']['TrackStatus'] == "Delivered") {
+                $tr->packageStatus = "Bezorgd";
+                $tr->isCompleted = true;
+        }
         $tr->packageStatusDate = $latestStatusDate;
         $tr->events = $events;
         return $tr;
