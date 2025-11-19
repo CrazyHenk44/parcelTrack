@@ -76,20 +76,23 @@ foreach ($packagesToProcess as $existingResult) {
             $logger->log("Package {$trackingCode} marked as delivered. Set status to INACTIVE.", Logger::INFO);
         }
 
-        $oldStatus     = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
-        $statusChanged = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
+        $oldStatus      = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
+        $statusChanged  = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
+        $historyChanged = ($existingResult === null) || (count($newResult->events) !== count($existingResult->events));
 
         // Determine if a notification should be sent
         $shouldSendNotification = false;
         if ($forceNotification) {
             $shouldSendNotification = true;
-        } elseif (!$noNotification && $statusChanged) {
+        } elseif (!$noNotification && ($statusChanged || $historyChanged)) {
             $shouldSendNotification = true;
         }
 
         if ($shouldSendNotification) {
             if ($statusChanged) {
                 $logger->log("Status changed for {$trackingCode}: {$oldStatus} -> {$newResult->packageStatus}", Logger::INFO);
+            } elseif ($historyChanged) {
+                $logger->log("History changed for {$trackingCode}", Logger::INFO);
             } else {
                 $logger->log("Force-mailing status for {$trackingCode} (status unchanged: {$newResult->packageStatus})", Logger::INFO);
             }
