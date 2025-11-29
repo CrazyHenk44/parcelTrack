@@ -97,6 +97,7 @@ private static function extractTrackingNumbersArray($value): array
     private static array $displayConfig = [
         'Statuscategorie'    => ['path' => 'shipment.statusCategory', 'type' => 'statusCategory'],
         'Statuscode'         => ['path' => 'shipment.statusCode',     'type' => 'statusCode'],
+        'Bezorger'           => 'shipment.delivery.service',
         'Oorsprong'          => 'shipment.originCountryCode',
         'Bestemming'         => 'shipment.destinationCountryCode',
         'Afgeleverd'         => ['path' => 'statistics.timestamps.deliveredDatetime',      'type' => 'date'],

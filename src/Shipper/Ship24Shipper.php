@@ -121,8 +121,9 @@ class Ship24Shipper implements ShipperInterface
             $result->packageStatus     = 'Bezorgd';
             $result->packageStatusDate = $deliveredDatetime;
         } elseif (!empty($shipment['delivery']['estimatedDeliveryDate'])) {
-            $result->packageStatus     = 'Geplande bezorging: ' . $shipment['delivery']['estimatedDeliveryDate'];
-            $result->packageStatusDate = $shipment['delivery']['estimatedDeliveryDate'];
+            $result->packageStatus     = sprintf('Geplande bezorging: %s',
+                \ParcelTrack\Helpers\DateHelper::formatDutchDate($shipment['delivery']['estimatedDeliveryDate']));
+            $result->packageStatusDate = null;
         }
 
         return $result;

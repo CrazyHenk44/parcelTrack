@@ -55,4 +55,35 @@ class Ship24ApiTest extends TestCase
         $this->assertEquals('Shipment information received', $event->description);
         $this->assertNull($event->location);
     }
+
+    public function testFetchWithEstimatedDeliveryDate(): void
+    {
+        $trackingCode = '3SSHIP24EXAMPLE';
+        $postalCode   = '1234AB';
+        $country      = 'NL';
+
+        // Mock response with estimatedDeliveryDate (use past date to ensure consistent formatting)
+        $trackingData = json_decode(file_get_contents(__DIR__ . '/data/Ship24_3SSHIP24EXAMPLE.json'), true);
+        $trackingData['data']['trackings'][0]['shipment']['delivery']['estimatedDeliveryDate'] = '2024-12-15T14:30:00.000Z';
+        $trackingData['data']['trackings'][0]['shipment']['statusMilestone'] = 'in_transit';
+        $responseBody = json_encode($trackingData);
+
+        $mock = new MockHandler([
+            new Response(200, ['Content-Type' => 'application/json'], $responseBody),
+        ]);
+
+        $handlerStack = HandlerStack::create($mock);
+        $client       = new Client(['handler' => $handlerStack, 'http_errors' => false]);
+
+        $shipper = new Ship24Shipper($this->logger, 'test-api-key', $client);
+        $result  = $shipper->fetch($trackingCode, ['postalCode' => $postalCode, 'country' => $country]);
+
+        // Assert that packageStatus contains formatted date
+        $this->assertStringContainsString('Geplande bezorging:', $result->packageStatus);
+        $this->assertStringContainsString('15 dec', $result->packageStatus);
+        $this->assertStringContainsString('14.30u', $result->packageStatus);
+
+        // Assert that packageStatusDate is null (frontend doesn't need it)
+        $this->assertNull($result->packageStatusDate);
+    }
 }
