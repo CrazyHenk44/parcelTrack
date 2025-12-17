@@ -149,7 +149,17 @@ foreach ($packagesToProcess as $existingResult) {
             } else {
                 $logger->log("Force-mailing status for {$trackingCode} (status unchanged: {$newResult->packageStatus})", Logger::INFO);
             }
-            $notificationService->sendPackageNotification($newResult);
+
+            // Calculate new events to display using helper
+            if ($existingResult) {
+                $notificationPackage = $newResult->diff($existingResult);
+            } else {
+                // If new package, send all events (or we could limit it, but cron usually sends all for new)
+                // Actually, if it's a new package found by cron, it's fair to send all history.
+                $notificationPackage = $newResult;
+            }
+
+            $notificationService->sendPackageNotification($notificationPackage);
         } else {
             $logger->log("Status for {$trackingCode} remains {$newResult->packageStatus}", Logger::DEBUG);
         }

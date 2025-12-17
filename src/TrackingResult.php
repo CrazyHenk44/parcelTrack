@@ -47,6 +47,46 @@ class TrackingResult
         $this->events[] = $event;
     }
 
+    /**
+     * Returns a clone of this TrackingResult with the specified events.
+     */
+    public function withEvents(array $events): self
+    {
+        $clone = clone $this;
+        $clone->events = $events;
+        return $clone;
+    }
+
+    /**
+     * Returns a clone of this TrackingResult containing only the events that are present in this result 
+     * but not in the $other result.
+     * Comparison is based on timestamp and description.
+     */
+    public function diff(TrackingResult $other): self
+    {
+        $otherEventKeys = [];
+        foreach ($other->events as $event) {
+            $key = $event->timestamp . '|' . $event->description;
+            $otherEventKeys[$key] = true;
+        }
+
+        $newEvents = [];
+        foreach ($this->events as $event) {
+            $key = $event->timestamp . '|' . $event->description;
+            if (!isset($otherEventKeys[$key])) {
+                $newEvents[] = $event;
+            }
+        }
+        
+        // Return sorted
+        usort($newEvents, function ($a, $b) {
+            return strtotime($b->timestamp) <=> strtotime($a->timestamp);
+        });
+
+        // Return a clone with the new events
+        return $this->withEvents($newEvents);
+    }
+
     public function getPostalCode(): ?string
     {
         return $this->postalCode;

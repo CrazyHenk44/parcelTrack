@@ -26,32 +26,21 @@ class NotificationService
 
 
         $title = 'ParcelTrack Update: ' . ($package->metadata->customName ?: $package->trackingCode);
-        $body  = "De status voor je pakket is bijgewerkt:\n";
-        $body .= "Vervoerder: {$package->shipper}\n";
-        $body .= "Trackingcode: {$package->trackingCode}\n";
-        $body .= "Status: {$package->packageStatus}\n\n";
+        $body = "Status: {$package->packageStatus}\n\n";
 
-        $body .= "Laatste paar gebeurtenissen:\n";
         if (!empty($package->events)) {
             $sortedEvents = $package->events;
             usort($sortedEvents, function ($a, $b) {
                 return strtotime($b->timestamp) <=> strtotime($a->timestamp);
             });
 
-            $latestEvents = array_slice($sortedEvents, 0, 5);
-
-            foreach ($latestEvents as $event) {
+            foreach ($sortedEvents as $event) {
                 $eventTimestamp = method_exists($event, 'prettyDate')
                     ? $event->prettyDate()
                     : DateHelper::formatDutchDate($event->timestamp);
                 $locationInfo   = $event->location ? " @ {$event->location}" : '';
                 $body .= "[{$eventTimestamp}] {$event->description}{$locationInfo}\n";
             }
-            if (count($sortedEvents) > 5) {
-                $body .= "...en meer.\n";
-            }
-        } else {
-            $body .= "Geen gebeurtenissen beschikbaar.\n";
         }
         // Create a temporary shipper factory to get the shipper link
         $tempLogger = new \ParcelTrack\Helpers\Logger($this->config->logLevel);
