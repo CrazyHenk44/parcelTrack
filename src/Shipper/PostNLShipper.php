@@ -116,6 +116,12 @@ class PostNLShipper implements ShipperInterface
                 $result->packageStatus     = sprintf('Geplande bezorging: %s', \ParcelTrack\Helpers\DateHelper::formatDutchDateRange($colli['eta']['start'], $colli['eta']['end']));
             }
             $result->packageStatusDate = null;
+            
+            // Populate raw ETA fields for history tracking
+            if (isset($colli['eta']['start']) && isset($colli['eta']['end'])) {
+                $result->etaStart = $colli['eta']['start'];
+                $result->etaEnd   = $colli['eta']['end'];
+            }
         }
 
         return $result;

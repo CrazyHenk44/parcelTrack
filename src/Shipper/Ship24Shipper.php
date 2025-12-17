@@ -124,6 +124,12 @@ class Ship24Shipper implements ShipperInterface
             $result->packageStatus     = sprintf('Geplande bezorging: %s',
                 \ParcelTrack\Helpers\DateHelper::formatDutchDate($shipment['delivery']['estimatedDeliveryDate']));
             $result->packageStatusDate = null;
+            
+            if (!empty($shipment['delivery']['estimatedDeliveryDate'])) {
+                // Ship24 often provides a single ISO string for ETA. We treat it as just start.
+                $result->etaStart = $shipment['delivery']['estimatedDeliveryDate'];
+                $result->etaEnd   = null;
+            }
         }
 
         return $result;

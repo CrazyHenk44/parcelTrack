@@ -196,6 +196,7 @@ switch ($requestMethod) {
                             'description' => $e->description,
                             'location'    => $e->location,
                             'prettyDate'  => $e->prettyDate(),
+                            'isInternal'  => $e->isInternal,
                         ];
                     }, $d['events']);
                 }

@@ -101,6 +101,11 @@ class DhlShipper implements ShipperInterface
             $result->packageStatus     = sprintf("Geplande bezorging: %s",
                     \ParcelTrack\Helpers\DateHelper::formatDutchDateRange($dateParts[0],$dateParts[1]));
 
+            if (isset($dateParts[0]) && isset($dateParts[1])) {
+                $result->etaStart = $dateParts[0];
+                $result->etaEnd   = $dateParts[1];
+            }
+            
             // This date is confusing.
             // $result->packageStatusDate = $shipment["lastUpdated"];
         }

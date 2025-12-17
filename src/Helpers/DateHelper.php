@@ -129,4 +129,45 @@ class DateHelper
             return $startDateString . ' - ' . $endDateString;
         }
     }
+
+    /**
+     * Formats a date range into Dutch pretty format using absolute dates only (no 'Vandaag/Morgen').
+     * Format: 'Weekday dd mmm, HH:MM - HH:MM' or 'Weekday dd mmm, HH:MM' if end is null
+     */
+    public static function formatAbsoluteDutchDateRange(string $startDateString, ?string $endDateString): string
+    {
+        try {
+            $start = new DateTime($startDateString);
+            
+            $formatTime = function(DateTime $dt): string {
+                $hour = $dt->format('G');
+                $minute = $dt->format('i');
+                return $minute === '00'
+                    ? sprintf('%s:00', $hour)
+                    : sprintf('%s:%s', $hour, $minute);
+            };
+
+            $startTime = $formatTime($start);
+            
+            $weekday = self::WEEKDAYS[(int)$start->format('w')];
+            $day = $start->format('j');
+            $month = self::MONTHS[(int)$start->format('n') - 1];
+
+            if ($endDateString) {
+                $end = new DateTime($endDateString);
+                $endTime = $formatTime($end);
+                
+                // If end is same as start (down to minute), treat as single point
+                if ($startTime === $endTime) {
+                     return sprintf('%s %s %s, %s', $weekday, $day, $month, $startTime);
+                }
+                
+                return sprintf('%s %s %s, %s - %s', $weekday, $day, $month, $startTime, $endTime);
+            }
+
+            return sprintf('%s %s %s, %s', $weekday, $day, $month, $startTime);
+        } catch (\Exception $e) {
+            return $startDateString . ($endDateString ? ' - ' . $endDateString : '');
+        }
+    }
 }

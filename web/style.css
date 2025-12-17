@@ -378,3 +378,18 @@ body.dark .pt-details-body a {
 .pt-theme-toggle .icon-moon { opacity: 1; }
 body.dark .pt-theme-toggle .icon-sun { opacity: 1; }
 body.dark .pt-theme-toggle .icon-moon { opacity: 0; }
+
+/* Internal Events */
+.pt-internal-event {
+    border-left-color: var(--muted) !important;
+    background: var(--glass);
+    font-size: 0.95em;
+    opacity: 0.85;
+}
+
+.pt-internal-event::before {
+    content: 'ℹ️'; /* Info icon */
+    font-size: 0.8em;
+    margin-right: 6px;
+    float: left;
+}

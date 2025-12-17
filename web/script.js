@@ -129,7 +129,7 @@
     let last = null
     events.forEach(ev=>{
       const d = document.createElement('div')
-      d.className = 'pt-history-item'
+      d.className = 'pt-history-item' + (ev.isInternal ? ' pt-internal-event' : '')
       const when = ev.prettyDate || (ev.timestamp ? formatDutchDateIso(ev.timestamp) : (ev.when || ''))
       const where = ev.location || ev.where || ''
       d.innerHTML = `<div class="muted" style="font-size:0.85rem">${when}</div><div style="margin-top:6px">${ev.description || ev.text || ''}</div><div class="muted" style="font-size:0.85rem;margin-top:6px">${where||''}</div>`

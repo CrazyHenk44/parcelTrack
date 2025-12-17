@@ -16,6 +16,8 @@ class TrackingResult
     public ?string $postalCode = null;
     public ?string $country    = null;
     public string $rawResponse = '';
+    public ?string $etaStart   = null;
+    public ?string $etaEnd     = null;
 
     /**
      * Ergonomic constructor: accepts associative array of fields. Only trackingCode, shipper, and packageStatus are required.
@@ -70,12 +72,14 @@ class TrackingResult
         $this->country           = $data['country'] ?? 'NL'; // Default to NL for existing packages
         $this->rawResponse       = $data['rawResponse'];
         $this->isCompleted       = $data['isCompleted'] ?? false;
+        $this->etaStart          = $data['etaStart'] ?? null;
+        $this->etaEnd            = $data['etaEnd'] ?? null;
 
         $this->events = array_map(function ($eventData) {
             if ($eventData instanceof Event) {
                 return $eventData;
             }
-            $e = new Event('', '', null);
+            $e = new Event('', '', null, false);
             $e->__unserialize((array)$eventData);
             return $e;
         }, $data['events'] ?? []);

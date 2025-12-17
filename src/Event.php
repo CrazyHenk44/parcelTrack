@@ -9,7 +9,8 @@ class Event
     public function __construct(
         public string $timestamp,
         public string $description,
-        public ?string $location
+        public ?string $location,
+        public bool $isInternal = false
     ) {
     }
 
@@ -18,6 +19,7 @@ class Event
         $this->timestamp   = $data['timestamp'];
         $this->description = $data['description'];
         $this->location    = $data['location'];
+        $this->isInternal  = $data['isInternal'] ?? false;
     }
 
     /**

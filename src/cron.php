@@ -78,6 +78,59 @@ foreach ($packagesToProcess as $existingResult) {
 
         $oldStatus      = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
         $statusChanged  = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
+        // Detect ETA changes
+        $previousEtaStart = $existingResult ? $existingResult->etaStart : null;
+        $previousEtaEnd   = $existingResult ? $existingResult->etaEnd   : null;
+        $newEtaStart      = $newResult->etaStart;
+        $newEtaEnd        = $newResult->etaEnd;
+
+        // Log if:
+        // 1. We have a new ETA AND it's different from the old one (Change)
+        // 2. We have a new ETA AND the old one was null (Initial)
+        
+        $hasNewEta = ($newEtaStart !== null); // End can be null content-wise
+        
+        if ($hasNewEta) {
+            // Check for change or initial
+            $isInitial = ($previousEtaStart === null);
+            $isChange  = ($previousEtaStart !== $newEtaStart || $previousEtaEnd !== $newEtaEnd);
+
+            if ($isInitial || $isChange) {
+                // Construct the description
+                $etaDescription = DateHelper::formatAbsoluteDutchDateRange($newEtaStart, $newEtaEnd);
+                
+                $msgPrefix = $isInitial ? "Geplande bezorging: " : "Geplande bezorging gewijzigd naar: ";
+
+                // Create internal event
+                $internalEvent = new \ParcelTrack\Event(
+                    date('Y-m-d H:i:s'), // Current time of check
+                    $msgPrefix . $etaDescription,
+                    null,
+                    true // isInternal
+                );
+                
+                // Add to new result's events
+                $newResult->addEvent($internalEvent);
+                $logger->log("ETA " . ($isInitial ? "initial" : "changed") . " for {$trackingCode}. Added internal event.", Logger::INFO);
+            }
+        }
+
+        // Preserve existing internal events from the old result
+        if ($existingResult) {
+            foreach ($existingResult->events as $oldEvent) {
+                if ($oldEvent->isInternal) {
+                    $newResult->addEvent($oldEvent);
+                }
+            }
+        }
+
+        // Re-sort events by timestamp to ensure correct timeline order
+        usort($newResult->events, function ($a, $b) {
+            return strtotime($b->timestamp) <=> strtotime($a->timestamp);
+        });
+
+        $oldStatus      = $existingResult ? $existingResult->packageStatus : 'N/A (New Package)';
+        $statusChanged  = ($existingResult === null) || ($newResult->packageStatus !== $existingResult->packageStatus);
         $historyChanged = ($existingResult === null) || (count($newResult->events) !== count($existingResult->events));
 
         // Determine if a notification should be sent
