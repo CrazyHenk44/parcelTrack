@@ -44,6 +44,10 @@ class DhlTranslationService
 
     public function translate(string $section, string $key): string
     {
+        if ($key === 'DELIVERED_AT_PARCELSHOP') {
+            return 'Bezorgd bij ServicePoint';
+        }
+
         $translations = $this->getTranslations();
         $parts        = explode('.', $section);
         $value        = $translations;
