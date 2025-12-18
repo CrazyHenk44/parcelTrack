@@ -14,6 +14,7 @@ RUN apk add --no-cache \
     icu-dev \
     python3 \
     py3-pip \
+    py3-gobject3 \
     ncurses-dev
 RUN apk add --no-cache nodejs npm chromium
 RUN npm install puppeteer
@@ -52,7 +53,7 @@ FROM php:8.2-fpm-alpine
 WORKDIR /opt/parceltrack
 
 # Install only the necessary production system dependencies
-RUN apk add --no-cache gettext nginx supervisor icu-dev curl-dev libzip-dev python3 py3-pip
+RUN apk add --no-cache gettext nginx supervisor icu-dev curl-dev libzip-dev python3 py3-pip py3-gobject3
 RUN apk add --no-cache nodejs npm chromium
 RUN npm install puppeteer
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
