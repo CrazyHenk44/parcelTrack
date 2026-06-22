@@ -189,6 +189,9 @@ switch ($requestMethod) {
 
             if ($helper) {
                 $d = $helper->getDisplayData();
+                // Completion is distinct from the administrative active/inactive state.
+                // The frontend uses this field with packageStatusDate for archive grouping.
+                $d['isCompleted'] = $package->isCompleted;
                 if (isset($d['events'])) {
                     $d['events'] = array_map(function(\ParcelTrack\Event $e) {
                         return [

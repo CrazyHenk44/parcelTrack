@@ -1,789 +1,632 @@
 (() => {
-  // App data populated from API
-  let PACKAGES = []
-  let HISTORY = {}
+  'use strict'
 
-  // DOM refs
-  const listEl = document.getElementById('pt-package-list')
-  const filterEl = document.getElementById('pt-filter')
-  const detailContainer = document.getElementById('pt-detail-container')
-  const detailTitle = document.getElementById('pt-detail-title')
-  const historyList = document.getElementById('pt-history-list')
-  const detailsBody = document.getElementById('pt-details-body')
-  const backBtn = document.getElementById('pt-back')
-  const themeToggleBtn = document.getElementById('pt-theme-toggle')
-
-  let selectedId = null
-  // map of id -> full package object from API
-  const serverPackages = {}
-  // config-driven defaults (populated from API)
-  let defaultCountry = 'NL'
-  let defaultAppriseurl = ''
-
-  function formatDutchDateIso(iso){
-    if(!iso) return ''
-    try{
-      const d = new Date(iso)
-      if(isNaN(d)) return iso
-      const opts = {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'}
-      return d.toLocaleString('nl-NL', opts).replace('.',':')
-    }catch(e){return iso}
+  const { isArchivedPackage } = window.ParcelTrackArchive
+  const state = {
+    packages: [],
+    serverPackages: {},
+    selectedId: null,
+    archiveExpanded: false,
+    loading: true,
+    loadError: false,
+    defaultCountry: 'NL',
+    defaultAppriseUrl: '',
+    shippers: [],
+    submittingPackage: false,
+    wizardStep: 1,
+    wizardData: emptyWizardData(),
+    actionHandler: null,
+    actionReturnFocus: null
   }
 
-  // update Activate button label depending on selected package metadata
-  function updateActivateLabel(){
-    const activateBtn = document.getElementById('pt-activate')
-    if(!activateBtn) return
-    if(!selectedId) { activateBtn.textContent = 'Activate'; return }
-    const pkg = serverPackages[selectedId]
-    const cur = pkg && pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
-    activateBtn.textContent = cur === 'active' ? 'Deactivate' : 'Activate'
+  const $ = id => document.getElementById(id)
+  const els = {
+    list: $('pt-package-list'), listStatus: $('pt-list-status'), filter: $('pt-filter'),
+    detail: $('pt-detail-container'), detailTitle: $('pt-detail-title'),
+    detailEmpty: $('pt-detail-empty'), detailContent: $('pt-detail-content'),
+    detailActions: $('pt-detail-actions'), history: $('pt-history-list'), details: $('pt-details-body'),
+    activate: $('pt-activate'), delete: $('pt-delete'),
+    reload: $('pt-reload'), back: $('pt-back'), theme: $('pt-theme-toggle'), add: $('pt-add'),
+    wizard: $('pt-wizard'), wizardClose: $('pt-wizard-close'), wizardBack: $('pt-wizard-back'),
+    wizardNext: $('pt-wizard-next'), wizardProgress: $('pt-wizard-progress'),
+    progressBar: $('pt-progress-bar'), wizardError: $('pt-wizard-error'),
+    shipperGrid: $('pt-shipper-grid'), extraFields: $('pt-extra-fields'),
+    actionModal: $('pt-action-modal'), actionTitle: $('pt-action-title'),
+    actionBody: $('pt-action-body'), actionForm: $('pt-action-form'),
+    actionSubmit: $('pt-action-submit'), actionClose: $('pt-action-close'),
+    actionCancel: $('pt-action-cancel'), toasts: $('pt-toast-region')
   }
 
-  function renderList(filter = ''){
-    listEl.innerHTML = ''
-    const f = filter.trim().toLowerCase()
-    PACKAGES.filter(p => !f || (p.title + ' ' + p.shipper + ' ' + p.code).toLowerCase().includes(f)).forEach(p => {
-      const li = document.createElement('li')
-      li.className = 'pt-package-item' + (p.inactive ? ' inactive' : '') + (p.id===selectedId? ' selected':'')
-      li.dataset.id = p.id
+  const icons = {
+    edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.3-10.3a2.1 2.1 0 0 0-3-3L5.2 16Z"/><path d="m14 7 3 3"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>',
+    truck: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4Z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    archive: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM3 4h18v3H3zM9 12h6"/></svg>',
+    restore: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM3 4h18v3H3zM12 16v-6M9 13l3-3 3 3"/></svg>'
+  }
 
-      li.innerHTML = `
-        <div class="pt-edit">✎</div>
-        <div style="flex:1">
-          <div class="pt-package-title">${p.title} <span class="muted" style="font-weight:600;margin-left:8px;font-family:monospace">${p.shipper}</span></div>
-          <div class="pt-package-sub">${p.status}</span></div>
-        </div>
-      `
+  function emptyWizardData() {
+    return { description: '', shipper: '', trackingNumber: '', extraFields: {}, shipperFields: [] }
+  }
 
-      li.addEventListener('click', ()=>selectPackage(p.id))
-      // edit name handler (prompt-based)
-      const editBtn = li.querySelector('.pt-edit')
-      if(editBtn){
-        editBtn.addEventListener('click', (ev)=>{
-          ev.stopPropagation()
-          const server = serverPackages[p.id]
-          const current = server && (server.customName || '') || p.title
-          const newName = prompt('Nieuwe naam voor pakket (leeg = verwijder)', current) // dutch prompt
-          if(newName !== null){
-            // send PUT to update customName
-            const shipper = server ? server.shipper : p.shipper
-            const trackingCode = server ? (server.trackingCode || server.code) : p.code
-            apiPut({shipper, trackingCode, customName: newName.trim() ? newName.trim() : ''}).then(()=>loadPackagesFromApi())
-          }
-        })
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]))
+  }
+
+  function formatDate(iso) {
+    if (!iso) return ''
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return String(iso)
+    return new Intl.DateTimeFormat('en', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }).format(date)
+  }
+
+  function relativeDate(iso) {
+    if (!iso) return ''
+    const timestamp = new Date(iso).getTime()
+    if (!Number.isFinite(timestamp)) return ''
+    const delta = Date.now() - timestamp
+    if (delta < 60 * 1000) return 'Just now'
+    if (delta < 60 * 60 * 1000) return `${Math.floor(delta / 60000)}m ago`
+    if (delta < 24 * 60 * 60 * 1000) return `${Math.floor(delta / 3600000)}h ago`
+    if (delta < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(delta / 86400000)}d ago`
+    return formatDate(iso)
+  }
+
+  function packageInitials(title, shipper) {
+    const words = String(title || '')
+      .trim()
+      .split(/\s+/)
+      .map(word => word.replace(/[^\p{L}\p{N}]/gu, ''))
+      .filter(Boolean)
+
+    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase()
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+    return String(shipper || 'PK').replace(/[^a-z0-9]/gi, '').slice(0, 2).toUpperCase() || 'PK'
+  }
+
+  function packageColor(title) {
+    const value = String(title || '')
+    let hash = 0
+    for (const character of value) hash = ((hash << 5) - hash + character.codePointAt(0)) | 0
+    return Math.abs(hash) % 8
+  }
+
+  function statusTone(status, inactive = false, isCompleted = false) {
+    const value = String(status || '').toLowerCase()
+    if (isCompleted === true) return 'delivered'
+    if (/exception|failed|return|delay|problem|error|unable/.test(value)) return 'exception'
+    if (/pending|customs|action|pickup|ready|wait|ophalen|ligt klaar|pakketautomaat/.test(value)) return 'attention'
+    if (!inactive && /transit|transport|route| onderweg|shipment|sorted|depart|arriv|out for/.test(value)) return 'transit'
+    return ''
+  }
+
+  function latestTimestamp(pkg) {
+    const events = state.serverPackages[pkg.id]?.events || []
+    return events[0]?.timestamp || pkg.completedAt || ''
+  }
+
+  function renderPackageItem(pkg) {
+    const item = document.createElement('li')
+    const tone = statusTone(pkg.status, pkg.inactive, pkg.isCompleted)
+    item.className = `pt-package-item${pkg.id === state.selectedId ? ' selected' : ''}`
+    item.dataset.id = pkg.id
+    item.tabIndex = 0
+    item.setAttribute('role', 'button')
+    item.setAttribute('aria-pressed', String(pkg.id === state.selectedId))
+    const initials = packageInitials(pkg.title, pkg.shipper)
+    const inactiveLabel = pkg.inactive && !tone ? '<span class="pt-status-chip">Inactive</span>' : ''
+    item.innerHTML = `
+      <span class="pt-carrier-mark tone-${packageColor(pkg.title)}" aria-hidden="true">${escapeHtml(initials)}</span>
+      <span class="pt-package-main">
+        <span class="pt-package-heading"><span class="pt-package-title">${escapeHtml(pkg.title)}</span></span>
+        <span class="pt-package-status-row"><span class="pt-status-chip ${tone}">${escapeHtml(pkg.status || 'Status unavailable')}</span>${inactiveLabel}</span>
+        <span class="pt-package-meta"><span>${escapeHtml(pkg.shipper)}</span><span aria-hidden="true">·</span><span>${escapeHtml(relativeDate(latestTimestamp(pkg)) || pkg.code)}</span></span>
+      </span>
+      <button class="pt-edit" type="button" aria-label="Rename ${escapeHtml(pkg.title)}">${icons.edit}</button>`
+    const select = () => selectPackage(pkg.id)
+    item.addEventListener('click', event => { if (!event.target.closest('.pt-edit')) select() })
+    item.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('.pt-edit')) {
+        event.preventDefault()
+        select()
       }
-      listEl.appendChild(li)
     })
+    item.querySelector('.pt-edit').addEventListener('click', event => {
+      event.stopPropagation()
+      openRenameDialog(pkg, event.currentTarget)
+    })
+    return item
   }
 
-  // API helpers
-  async function apiPut(body){
-    try{
-      const r = await fetch('api.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
-      if(!r.ok) throw new Error('Network error')
-      return await r.json()
-    }catch(e){ console.error('PUT failed', e); throw e }
+  function renderList() {
+    els.list.innerHTML = ''
+    if (state.loading) {
+      els.listStatus.textContent = 'Loading packages…'
+      for (let i = 0; i < 5; i++) {
+        const skeleton = document.createElement('li')
+        skeleton.className = 'pt-skeleton'
+        skeleton.setAttribute('aria-hidden', 'true')
+        els.list.appendChild(skeleton)
+      }
+      return
+    }
+    if (state.loadError) {
+      els.listStatus.textContent = ''
+      els.list.innerHTML = '<li class="pt-list-message"><h2>Packages unavailable</h2><p>Refresh to try loading them again.</p></li>'
+      return
+    }
+
+    const filter = els.filter.value.trim().toLowerCase()
+    const matches = state.packages.filter(pkg =>
+      !filter || `${pkg.title} ${pkg.shipper} ${pkg.code} ${pkg.status}`.toLowerCase().includes(filter)
+    )
+    const current = matches.filter(pkg => !isArchivedPackage(pkg))
+    const archived = matches.filter(pkg => isArchivedPackage(pkg))
+    els.listStatus.textContent = filter
+      ? `${matches.length} result${matches.length === 1 ? '' : 's'}`
+      : `${state.packages.length} package${state.packages.length === 1 ? '' : 's'}`
+
+    if (!matches.length) {
+      els.list.innerHTML = filter
+        ? '<li class="pt-list-message"><h2>No matches</h2><p>Try a different package name, carrier, or tracking number.</p></li>'
+        : '<li class="pt-list-message"><h2>No packages yet</h2><p>Add a package to start tracking its journey.</p></li>'
+      return
+    }
+    current.forEach(pkg => els.list.appendChild(renderPackageItem(pkg)))
+    if (archived.length) {
+      const archive = document.createElement('li')
+      archive.className = 'pt-archive'
+      const expanded = state.archiveExpanded || Boolean(filter)
+      archive.innerHTML = `<button class="pt-archive-button" type="button" aria-expanded="${expanded}">${icons.chevron}<span>Archived packages (${archived.length})</span></button>`
+      archive.querySelector('button').addEventListener('click', () => {
+        state.archiveExpanded = !state.archiveExpanded
+        renderList()
+      })
+      els.list.appendChild(archive)
+      if (expanded) archived.forEach(pkg => els.list.appendChild(renderPackageItem(pkg)))
+    }
   }
 
-  async function apiDelete(body){
-    try{
-      const r = await fetch('api.php', {method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
-      if(!r.ok) throw new Error('Network error')
-      return await r.json()
-    }catch(e){ console.error('DELETE failed', e); throw e }
-  }
-
-  function selectPackage(id){
-    selectedId = id
-    renderList(filterEl.value)
-  const pkg = PACKAGES.find(p=>p.id===id)
-    detailTitle.textContent = pkg.title
+  function selectPackage(id) {
+    const pkg = state.packages.find(item => item.id === id)
+    if (!pkg) return
+    state.selectedId = id
+    els.detailTitle.textContent = pkg.title
+    els.detailEmpty.hidden = true
+    els.detailContent.hidden = false
+    els.detailActions.hidden = false
+    els.detail.setAttribute('aria-hidden', 'false')
+    els.detail.classList.add('show')
+    renderList()
     renderHistory(id)
     renderDetails(id)
-    updateActivateLabel()
-    // show detail on mobile
-    detailContainer.setAttribute('aria-hidden','false')
-    detailContainer.classList.add('show')
+    updateActivateButton()
   }
 
-  function renderHistory(id){
-    historyList.innerHTML = ''
-    // prefer server-provided events
-    const pkg = serverPackages[id]
-  const events = (pkg && pkg.events && pkg.events.slice()) || (HISTORY[id]||[])
-    // If server provides packageStatus, render a prominent status box at the top of history
-    if(pkg && pkg.packageStatus){
-      const statusBox = document.createElement('div')
-      statusBox.className = 'pt-history-status'
-      const when = pkg.packageStatusDate ? formatDutchDateIso(pkg.packageStatusDate) : ''
-      statusBox.innerHTML = `<div class="pt-h-status">${pkg.packageStatus}</div>${when? `<div class="pt-h-date">${when}</div>` : ''}`
-      historyList.appendChild(statusBox)
-    }
-    // ensure newest first (server provides timestamps)
-    events.sort((a,b)=>{
-      const ta = new Date(a.timestamp || a.when || 0).getTime()
-      const tb = new Date(b.timestamp || b.when || 0).getTime()
-      return tb - ta
+  function renderHistory(id) {
+    const pkg = state.serverPackages[id]
+    els.history.innerHTML = ''
+    if (!pkg) return
+    const tone = statusTone(pkg.packageStatus, pkg.metadata?.status === 'inactive', pkg.isCompleted)
+    const symbol = tone === 'delivered' ? icons.check : tone === 'exception' ? icons.alert : tone === 'attention' ? icons.info : icons.truck
+    const summary = document.createElement('article')
+    summary.className = `pt-status-summary ${tone}`
+    summary.innerHTML = `<span class="pt-status-symbol">${symbol}</span><div><h3>${escapeHtml(pkg.packageStatus || 'Status unavailable')}</h3><p>${escapeHtml(pkg.packageStatusDate ? `Updated ${formatDate(pkg.packageStatusDate)}` : 'Waiting for an update')}</p></div>`
+    els.history.appendChild(summary)
+
+    const events = Array.isArray(pkg.events) ? [...pkg.events] : []
+    events.sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
+    const timeline = document.createElement('div')
+    timeline.className = 'pt-timeline'
+    const seen = new Set()
+    events.forEach(event => {
+      const key = `${event.timestamp || ''}|${event.description || ''}|${event.location || ''}`
+      if (seen.has(key)) return
+      seen.add(key)
+      const row = document.createElement('article')
+      row.className = `pt-history-item${event.isInternal ? ' pt-internal-event' : ''}`
+      row.innerHTML = `<span class="pt-timeline-dot" aria-hidden="true"></span><div class="pt-event-description">${escapeHtml(event.description || 'Tracking update')}</div><div class="pt-event-meta"><span>${escapeHtml(event.prettyDate || formatDate(event.timestamp))}</span>${event.location ? `<span>${escapeHtml(event.location)}</span>` : ''}</div>`
+      timeline.appendChild(row)
     })
-    let last = null
-    events.forEach(ev=>{
-      const d = document.createElement('div')
-      d.className = 'pt-history-item' + (ev.isInternal ? ' pt-internal-event' : '')
-      const when = ev.prettyDate || (ev.timestamp ? formatDutchDateIso(ev.timestamp) : (ev.when || ''))
-      const where = ev.location || ev.where || ''
-      d.innerHTML = `<div class="muted" style="font-size:0.85rem">${when}</div><div style="margin-top:6px">${ev.description || ev.text || ''}</div><div class="muted" style="font-size:0.85rem;margin-top:6px">${where||''}</div>`
-      if (last !== d.innerHTML) {
-        historyList.appendChild(d)
-      }
-      last = d.innerHTML
-    })
+    if (!events.length) timeline.innerHTML = '<p class="pt-field-hint">No tracking events are available yet.</p>'
+    els.history.appendChild(timeline)
   }
 
-  function renderDetails(id){
-    // prefer server package details when available
-    const serverPkg = serverPackages[id]
-    if(serverPkg){
-      detailsBody.innerHTML = ''
-      // top header with shipper and tracking
-      const header = document.createElement('div')
-      header.style.display = 'flex'
-      header.style.gap = '12px'
-      header.style.alignItems = 'center'
-      const tracking = serverPkg.trackingCode || serverPkg.code || '';
-      const trackingHtml = serverPkg.trackingLink ? `<a href="${serverPkg.trackingLink}" target="_blank" class="pt-tracking-link" style="font-family:monospace">${tracking}</a>` : `<span style="font-family:monospace">${tracking}</span>`;
-      header.innerHTML = `<div style="font-weight:700">${serverPkg.shipper}</div><div class="muted">${trackingHtml}</div>`;
-      detailsBody.appendChild(header)
-      // formatted details (may contain HTML)
-      if(serverPkg.formattedDetails){
-        const fd = document.createElement('div')
-        fd.style.marginTop = '12px'
-        for(const [label,value] of Object.entries(serverPkg.formattedDetails)){
-          const row = document.createElement('div')
-          row.className = 'pt-detail-field'
-          row.innerHTML = `<div class="label">${label}:</div><div class="value">${value}</div>`
-          fd.appendChild(row)
-        }
-        detailsBody.appendChild(fd)
-      }
-
-      // Apprise URL is now managed by a button in the footer, not displayed directly here.
+  function renderDetails(id) {
+    const pkg = state.serverPackages[id]
+    els.details.innerHTML = ''
+    if (!pkg) return
+    const tracking = pkg.trackingCode || pkg.code || ''
+    const header = document.createElement('div')
+    header.className = 'pt-details-header'
+    const trackingMarkup = pkg.trackingLink
+      ? `<a class="pt-tracking-code pt-tracking-link" href="${escapeHtml(pkg.trackingLink)}" target="_blank" rel="noopener">${escapeHtml(tracking)}</a>`
+      : `<span class="pt-tracking-code">${escapeHtml(tracking)}</span>`
+    header.innerHTML = `<div class="pt-details-carrier">${escapeHtml(pkg.shipper || 'Carrier')}</div>${trackingMarkup}`
+    els.details.appendChild(header)
+    if (pkg.formattedDetails && Object.keys(pkg.formattedDetails).length) {
+      Object.entries(pkg.formattedDetails).forEach(([label, value]) => {
+        const row = document.createElement('div')
+        row.className = 'pt-detail-field'
+        row.innerHTML = `<span class="label">${escapeHtml(label)}</span><span class="value">${value}</span>`
+        els.details.appendChild(row)
+      })
     } else {
-      const pkg = PACKAGES.find(p=>p.id===id)
-      detailsBody.innerHTML = `
-      <div style="display:flex;gap:12px;align-items:center">
-        <div style="font-weight:700">${pkg.shipper}</div>
-        <div class="muted">Tracking: <span style="font-family:monospace">${pkg.code}</span></div>
-      </div>
-      <div style="margin-top:12px">Status: <strong>${pkg.status}</strong></div>
-    `
+      els.details.insertAdjacentHTML('beforeend', '<p class="pt-field-hint">No additional shipment details are available.</p>')
     }
   }
 
-  // Filter
-  filterEl.addEventListener('input', e=>renderList(e.target.value))
+  function updateActivateButton() {
+    const pkg = state.serverPackages[state.selectedId]
+    const active = (pkg?.metadata?.status || 'active') === 'active'
+    const label = active ? 'Archive package' : 'Restore package'
+    els.activate.innerHTML = active ? icons.archive : icons.restore
+    els.activate.setAttribute('aria-label', label)
+    els.activate.title = label
+  }
 
-  // Back button (mobile)
-  backBtn.addEventListener('click', ()=>{
-    detailContainer.classList.remove('show')
-    detailContainer.setAttribute('aria-hidden','true')
-  })
-
-  // top bar reload
-  const reloadBtn = document.getElementById('pt-reload')
-  if(reloadBtn){ reloadBtn.addEventListener('click', ()=>{ loadPackagesFromApi() }) }
-
-  // delete and activate buttons in footer
-  const activateBtn = document.getElementById('pt-activate')
-  const deleteBtn = document.getElementById('pt-delete')
-  if(activateBtn){
-    const updateActivateLabel = ()=>{
-      if(!selectedId) return activateBtn.textContent = 'Activate'
-      const pkg = serverPackages[selectedId]
-      const cur = pkg && pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
-      activateBtn.textContent = cur === 'active' ? 'Deactivate' : 'Activate'
-    }
-    activateBtn.addEventListener('click', async ()=>{
-      if(!selectedId) return alert('Selecteer eerst een pakket')
-      const pkg = serverPackages[selectedId]
-      const shipper = pkg ? pkg.shipper : null
-      const trackingCode = pkg ? (pkg.trackingCode || pkg.code) : null
-      if(!shipper || !trackingCode) return alert('Geen paketinformatie beschikbaar')
-      const cur = pkg.metadata && pkg.metadata.status ? pkg.metadata.status : 'active'
-      const newStatus = cur === 'active' ? 'inactive' : 'active'
-      try{
-        await apiPut({shipper, trackingCode, status: newStatus})
-        await loadPackagesFromApi()
-      }catch(e){ alert('Kon status niet bijwerken') }
+  async function request(method, body) {
+    const response = await fetch('api.php', {
+      method,
+      headers: body ? {'Content-Type':'application/json'} : undefined,
+      body: body ? JSON.stringify(body) : undefined
     })
-    // refresh label when selection changes
-    document.addEventListener('selectionchange', updateActivateLabel)
-  }
-  // Add notifications button and its event listener
-  const notificationsBtn = document.getElementById('pt-notifications')
-  if(notificationsBtn){
-    notificationsBtn.addEventListener('click', ()=>{
-      if(!selectedId) return alert('Selecteer eerst een pakket')
-      const pkg = serverPackages[selectedId]
-      const appriseUrl = (pkg.metadata && pkg.metadata.appriseUrl) ? pkg.metadata.appriseUrl : defaultAppriseurl
-      const newUrl = prompt('Enter new Apprise URL (leave empty to use global URL)', appriseUrl)
-      if(newUrl !== null){
-        const shipper = pkg.shipper
-        const trackingCode = pkg.trackingCode || pkg.code
-        apiPut({shipper, trackingCode, appriseUrl: newUrl.trim()}).then(()=>loadPackagesFromApi())
-      }
-    })
+    if (!response.ok) throw new Error(`Request failed (${response.status})`)
+    return response.json()
   }
 
-  if(deleteBtn){
-    deleteBtn.addEventListener('click', async ()=>{
-      if(!selectedId) return alert('Selecteer eerst een pakket')
-      if(!confirm('Weet je zeker dat je dit pakket wilt verwijderen?')) return
-      const pkg = serverPackages[selectedId]
-      const shipper = pkg ? pkg.shipper : null
-      const trackingCode = pkg ? (pkg.trackingCode || pkg.code) : null
-      if(!shipper || !trackingCode) return alert('Geen paketinformatie beschikbaar')
-      try{
-        await apiDelete({shipper, trackingCode})
-        selectedId = null
-        await loadPackagesFromApi()
-      }catch(e){ alert('Kon pakket niet verwijderen') }
-    })
-  }
-
-  // Separator drag to resize panels on mobile only (vertical resize between history and details)
-  const separator = document.getElementById('pt-separator')
-  const historyPanel = document.getElementById('pt-history')
-  const detailsPanel = document.getElementById('pt-details')
-
-  function applySavedHistoryHeight(){
-    try{
-      const saved = localStorage.getItem('pt-history-height-pct')
-      if(saved && window.innerWidth <= 860){
-        const pct = parseFloat(saved)
-        const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
-        // apply explicit height and keep flex disabled on mobile so it persists
-        historyPanel.style.flex = 'none'
-        historyPanel.style.height = Math.round(containerHeight * pct / 100) + 'px'
-        try{ document.getElementById('pt-history-list').style.height = (historyPanel.getBoundingClientRect().height - 48) + 'px' }catch(e){}
-      }
-    }catch(e){}
-  }
-
-  if(separator && historyPanel && detailsPanel){
-    // enable mobile (vertical) resize using pointer events
-    function enableMobileResize(){
-      let dragging = false
-      let startY = 0
-      let startHeight = 0
-
-      function onMoveClient(y){
-        const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
-        const dy = y - startY
-        const newHeight = Math.max(80, Math.min(containerHeight - 80, startHeight + dy))
-  // apply height to both the panel and the scroll list for visibility
-  historyPanel.style.height = newHeight + 'px'
-  try{ document.getElementById('pt-history-list').style.height = (newHeight - 48) + 'px' }catch(e){}
-      }
-
-      function pointerDown(e){
-        if(window.innerWidth > 860) return
-        e.preventDefault()
-  // separator down
-  dragging = true
-  startY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY) || 0
-  startHeight = historyPanel.getBoundingClientRect().height
-  // start values
-        // temporarily disable flex growth so explicit height is applied
-        try{
-          historyPanel.style.flex = 'none'
-          detailsPanel.style.flex = '1'
-          historyPanel.style.willChange = 'height'
-          // disabled flex on history panel
-        }catch(e){console.warn('[pt] failed to set flex', e)}
-        // prevent selection and pointer interactions on the scrolling list while dragging
-        document.body.classList.add('dragging')
-        try{ historyList.style.pointerEvents = 'none' }catch(e){}
-        // capture pointer to continue receiving events even if pointer leaves the separator
-        try{ if(e.pointerId) separator.setPointerCapture(e.pointerId) }catch(e){}
-        // attach move/up handlers
-        if(window.PointerEvent){
-          window.addEventListener('pointermove', pointerMove)
-          window.addEventListener('pointerup', pointerUp, {once:true})
-        } else {
-          // fallback for older mobile browsers: touch events
-          window.addEventListener('touchmove', pointerMove, {passive:false})
-          window.addEventListener('touchend', pointerUp, {once:true})
-        }
-      }
-
-      function pointerMove(e){
-        if(!dragging) return
-  // prevent page scrolling while dragging
-  if(e.preventDefault) e.preventDefault()
-  const clientY = e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY)
-        onMoveClient(clientY)
-      }
-
-      function pointerUp(e){
-  // separator up
-        dragging = false
-        document.body.classList.remove('dragging')
-        try{ historyList.style.pointerEvents = '' }catch(e){}
-  try{ if(e.pointerId && separator.releasePointerCapture) separator.releasePointerCapture(e.pointerId) }catch(e){}
-        // compute and persist percentage height
-        try{
-          const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
-          const appliedHeight = historyPanel.getBoundingClientRect().height
-          const pct = Math.round((appliedHeight / containerHeight) * 10000) / 100
-          localStorage.setItem('pt-history-height-pct', String(pct))
-          // on mobile keep explicit height (and flex:none) so the visual result persists
-          if(window.innerWidth <= 860){
-            try{
-              historyPanel.style.flex = 'none'
-              historyPanel.style.height = Math.round(containerHeight * pct / 100) + 'px'
-              try{ document.getElementById('pt-history-list').style.height = (historyPanel.getBoundingClientRect().height - 48) + 'px' }catch(e){}
-              // applied explicit height for mobile after release
-            }catch(e){console.warn('[pt] failed to apply mobile height', e)}
-          } else {
-            // restore flex behavior for larger screens
-            try{ historyPanel.style.flex = ''; historyPanel.style.willChange = ''; }catch(e){console.warn('[pt] failed to restore flex', e)}
-          }
-        }catch(e){console.warn('[pt] failed to persist height', e)}
-        if(window.PointerEvent){
-          window.removeEventListener('pointermove', pointerMove)
-        } else {
-          window.removeEventListener('touchmove', pointerMove)
-        }
-        try{
-          const containerHeight = historyPanel.parentElement.getBoundingClientRect().height
-          const pct = Math.round((historyPanel.getBoundingClientRect().height / containerHeight) * 10000) / 100
-          localStorage.setItem('pt-history-height-pct', String(pct))
-        }catch(e){}
-      }
-
-      // wire both pointerdown and touchstart for maximum compatibility
-      if(window.PointerEvent){
-        separator.addEventListener('pointerdown', pointerDown)
-      } else {
-        separator.addEventListener('touchstart', pointerDown, {passive:false})
-        separator.addEventListener('mousedown', pointerDown)
-      }
-    }
-
-    // apply saved height on load
-    applySavedHistoryHeight()
-    enableMobileResize()
-
-    // also re-apply on resize (desktop <-> mobile)
-    window.addEventListener('resize', ()=>{
-      if(window.innerWidth > 860){
-        historyPanel.style.height = ''
-      } else {
-        applySavedHistoryHeight()
-      }
-    })
-  }
-
-  // Desktop vertical separator between package list and details
-  const vSeparator = document.getElementById('pt-v-separator')
-  const packageListContainer = document.querySelector('.pt-package-list-container')
-
-  function applySavedLeftWidth(){
-    try{
-      const saved = localStorage.getItem('pt-left-width-pct')
-      if(saved && window.innerWidth > 860){
-        const pct = parseFloat(saved)
-        const newWidth = Math.round(window.innerWidth * pct / 100)
-        packageListContainer.style.width = newWidth + 'px'
-      }
-    }catch(e){}
-  }
-
-  if(vSeparator && packageListContainer){
-    let draggingV = false
-    let startX = 0
-    let startWidth = 0
-
-    function onVMoveClient(x){
-      const dx = x - startX
-      const newWidth = Math.max(200, Math.min(window.innerWidth - 240, startWidth + dx))
-      packageListContainer.style.width = newWidth + 'px'
-    }
-
-    function pointerVDown(e){
-      if(window.innerWidth <= 860) return
-      e.preventDefault()
-      draggingV = true
-      startX = e.clientX
-      startWidth = packageListContainer.getBoundingClientRect().width
-      document.body.classList.add('dragging')
-      document.body.style.cursor = 'col-resize'
-      window.addEventListener('pointermove', pointerVMove)
-      window.addEventListener('pointerup', pointerVUp, {once:true})
-    }
-
-    function pointerVMove(e){ if(!draggingV) return; onVMoveClient(e.clientX) }
-
-    function pointerVUp(e){
-      draggingV = false
-      document.body.classList.remove('dragging')
-      document.body.style.cursor = ''
-      window.removeEventListener('pointermove', pointerVMove)
-      try{
-        const pct = Math.round((packageListContainer.getBoundingClientRect().width / window.innerWidth) * 10000) / 100
-        localStorage.setItem('pt-left-width-pct', String(pct))
-      }catch(e){}
-    }
-
-    vSeparator.addEventListener('pointerdown', pointerVDown)
-
-    // keyboard support: left/right arrows to nudge the left panel
-    vSeparator.tabIndex = 0
-    vSeparator.addEventListener('keydown', (e)=>{
-      const step = e.shiftKey ? 20 : 8
-      const cur = packageListContainer.getBoundingClientRect().width
-      if(e.key === 'ArrowLeft'){
-        packageListContainer.style.width = Math.max(160, cur - step) + 'px'
-        try{ localStorage.setItem('pt-left-width', Math.round(packageListContainer.getBoundingClientRect().width)) }catch(e){}
-        e.preventDefault()
-      } else if(e.key === 'ArrowRight'){
-        packageListContainer.style.width = Math.min(window.innerWidth - 160, cur + step) + 'px'
-        try{ localStorage.setItem('pt-left-width', Math.round(packageListContainer.getBoundingClientRect().width)) }catch(e){}
-        e.preventDefault()
-      }
-    })
-
-    applySavedLeftWidth()
-    window.addEventListener('resize', ()=>{ if(window.innerWidth <= 860) packageListContainer.style.width = '' })
-  }
-
-  // Package Add Wizard
-  const wizard = document.getElementById('pt-wizard')
-  const wizardClose = document.getElementById('pt-wizard-close')
-  const wizardNext = document.getElementById('pt-wizard-next')
-  const wizardBack = document.getElementById('pt-wizard-back')
-  const addBtn = document.getElementById('pt-add')
-  
-  let currentStep = 1
-  let availableShippers = []
-  let wizardData = {
-    description: '',
-    shipper: '',
-    trackingNumber: '',
-    extraFields: {},
-    shipperFields: []
-  }
-  
-  // Function to load shippers from API
-  async function loadShippers() {
+  async function loadPackages() {
+    state.loading = true
+    state.loadError = false
+    els.reload.disabled = true
+    renderList()
     try {
-      const response = await fetch('api.php?shippers=1')
-      if (!response.ok) throw new Error('Failed to load shippers')
-      const data = await response.json()
-      availableShippers = data.shippers
-      if (data.defaults) {
-        defaultCountry = data.defaults.country || 'NL'
-        defaultAppriseurl = data.defaults.appriseUrl || '' // Now reading 'appriseUrl' (plural)
+      const data = await request('GET')
+      state.serverPackages = {}
+      state.packages = (data.packages || []).map((pkg, index) => {
+        const id = pkg.trackingCode ? `${pkg.shipper}-${pkg.trackingCode}` : `pkg-${index}`
+        state.serverPackages[id] = pkg
+        return {
+          id,
+          shipper: pkg.shipper || '',
+          title: pkg.customName || (pkg.shipper && pkg.trackingCode ? `${pkg.shipper} · ${pkg.trackingCode}` : pkg.trackingCode || pkg.shipper || 'Package'),
+          status: pkg.packageStatus || '',
+          inactive: pkg.metadata?.status === 'inactive',
+          code: pkg.trackingCode || pkg.code || '',
+          isCompleted: pkg.isCompleted === true,
+          completedAt: pkg.packageStatusDate || null
+        }
+      })
+      if (state.selectedId && state.serverPackages[state.selectedId]) {
+        renderHistory(state.selectedId)
+        renderDetails(state.selectedId)
+      } else if (state.selectedId) {
+        clearSelection()
       }
     } catch (error) {
-      console.error('Failed to load shippers:', error)
-      alert('Failed to load shippers. Please try again.')
-    }
-  }
-  
-  function showWizard() {
-    if (availableShippers.length === 0) {
-      loadShippers().then(() => {
-        currentStep = 1
-        wizardData = {
-          description: '',
-          shipper: '',
-          trackingNumber: '',
-          extraFields: {},
-          shipperFields: []
-        }
-        wizard.setAttribute('aria-hidden', 'false')
-        showWizardStep(1)
-      })
-    } else {
-      currentStep = 1
-      wizardData = {
-        description: '',
-        shipper: '',
-        trackingNumber: '',
-        extraFields: {},
-        shipperFields: []
-      }
-      wizard.setAttribute('aria-hidden', 'false')
-      showWizardStep(1)
-    }
-  }
-  
-  function hideWizard() {
-    wizard.setAttribute('aria-hidden', 'true')
-  }
-  
-  function showWizardStep(step) {
-    document.querySelectorAll('.pt-wizard-step').forEach(el => el.style.display = 'none')
-    document.getElementById(`pt-wizard-step-${step}`).style.display = 'block'
-    
-    wizardBack.style.display = step > 1 ? 'block' : 'none'
-    wizardNext.style.display = step === 2 ? 'none' : 'block'
-    wizardNext.textContent = step === 3 ? 'Add Package' : 'Next'
-    
-    if (step === 2) {
-      const grid = document.getElementById('pt-shipper-grid')
-      grid.innerHTML = availableShippers.map(s => `
-        <button class="pt-shipper-btn" data-shipper="${s.id}" data-fields='${JSON.stringify(s.fields)}'>
-          <span>${s.name}</span>
-        </button>
-      `).join('')
-      
-      if (wizardData.shipper) {
-        grid.querySelector(`[data-shipper="${wizardData.shipper}"]`)?.classList.add('selected')
-      }
-      
-      grid.querySelectorAll('.pt-shipper-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          grid.querySelectorAll('.pt-shipper-btn').forEach(b => b.classList.remove('selected'))
-          btn.classList.add('selected')
-          wizardData.shipper = btn.dataset.shipper
-          
-          // Store fields for the selected shipper
-          wizardData.shipperFields = JSON.parse(btn.dataset.fields)
-          
-          // Advance to next step immediately
-          currentStep = 3
-          showWizardStep(3)
-        })
-      })
-    }
-    
-    if (step === 1) {
-      // prefill description input
-      try{ document.getElementById('pt-package-desc').value = wizardData.description || '' }catch(e){}
-    }
-
-    if (step === 3 && wizardData.shipper) {
-      // prefill tracking number
-      try{ document.getElementById('pt-tracking-number').value = wizardData.trackingNumber || '' }catch(e){}
-
-      const extraFields = document.getElementById('pt-extra-fields')
-      extraFields.innerHTML = (wizardData.shipperFields || []).map(f => {
-        const valFromData = (wizardData.extraFields && wizardData.extraFields[f.id]) ? wizardData.extraFields[f.id] : ''
-        const value = valFromData || (f.id === 'country' ? defaultCountry : '')
-        return `
-        <div class="pt-form-group">
-          <label for="pt-field-${f.id}">${f.label}${f.required ? '*' : ''}</label>
-          <input type="${f.type || 'text'}" id="pt-field-${f.id}" ${f.required ? 'required' : ''} value="${value}">
-        </div>
-      `
-      }).join('')
-    }
-  }
-  
-  async function validateStep(step) {
-    if (step === 1) {
-      const desc = document.getElementById('pt-package-desc').value.trim()
-      
-      if (!desc) {
-        alert('Please enter a package description')
-        return false
-      }
-      
-      wizardData.description = desc
-      // No appriseUrl input field to validate in step 1 anymore
-      return true
-    }
-    
-    if (step === 2) {
-      if (!wizardData.shipper) {
-        alert('Please select a shipper')
-        return false
-      }
-      return true
-    }
-    
-    if (step === 3) {
-      const tracking = document.getElementById('pt-tracking-number').value.trim()
-      if (!tracking) {
-        alert('Please enter a tracking number')
-        return false
-      }
-      
-      wizardData.trackingNumber = tracking
-      
-      // Collect extra fields
-      const extraFields = document.getElementById('pt-extra-fields')
-      const required = Array.from(extraFields.querySelectorAll('input[required]'))
-      const empty = required.find(inp => !inp.value.trim())
-      if (empty) {
-        alert(`Please fill in the field: ${empty.previousElementSibling.textContent.replace('*', '')}`)
-        return false
-      }
-      
-      wizardData.extraFields = Array.from(extraFields.querySelectorAll('input')).reduce((acc, inp) => {
-        acc[inp.id.replace('pt-field-', '')] = inp.value.trim()
-        return acc
-      }, {})
-      
-      return true
-    }
-    
-    return true
-  }
-  
-  async function submitPackage() {
-    try {
-      const response = await fetch('api.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shipper: wizardData.shipper,
-          trackingCode: wizardData.trackingNumber,
-          customName: wizardData.description,
-          appriseUrl: defaultAppriseurl, // Silently set to defaultAppriseurl
-          ...wizardData.extraFields
-        })
-      })
-      
-      if (!response.ok) throw new Error('Failed to add package')
-      
-      hideWizard()
-      loadPackagesFromApi()
-    } catch (err) {
-      console.error(err)
-      alert('Failed to add package. Please try again.')
-    }
-  }
-  
-  // Wire up wizard events
-  addBtn.addEventListener('click', showWizard)
-  wizardClose.addEventListener('click', hideWizard)
-  
-  wizardNext.addEventListener('click', async () => {
-    if (await validateStep(currentStep)) {
-      if (currentStep === 3) {
-        submitPackage()
-      } else {
-        currentStep++
-        showWizardStep(currentStep)
-      }
-    }
-  })
-  
-  wizardBack.addEventListener('click', () => {
-    if (currentStep > 1) {
-      currentStep--
-      showWizardStep(currentStep)
-    }
-  })
-  
-  wizard.addEventListener('click', e => {
-    if (e.target === wizard || e.target.classList.contains('pt-wizard-backdrop')) {
-      hideWizard()
-    }
-  })
-
-  // Theme toggle: persistent dark mode
-  function applyTheme(theme){
-    if(theme === 'dark'){
-      document.body.classList.add('dark')
-      if(themeToggleBtn) themeToggleBtn.setAttribute('aria-pressed','true')
-    } else {
-      document.body.classList.remove('dark')
-      if(themeToggleBtn) themeToggleBtn.setAttribute('aria-pressed','false')
+      console.error('Could not load packages', error)
+      state.packages = []
+      state.serverPackages = {}
+      state.loadError = true
+      showToast('Could not load packages. Try refreshing.', 'error')
+    } finally {
+      state.loading = false
+      els.reload.disabled = false
+      renderList()
+      updateActivateButton()
     }
   }
 
-  // initialize theme from localStorage or system preference
-  try{
-    const saved = localStorage.getItem('pt-theme')
-    if(saved){ applyTheme(saved) }
-    else if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){ applyTheme('dark') }
-    else { applyTheme('light') }
-  }catch(e){ /* ignore storage errors */ }
+  function clearSelection() {
+    state.selectedId = null
+    els.detailTitle.textContent = 'Select a package'
+    els.detailEmpty.hidden = false
+    els.detailContent.hidden = true
+    els.detailActions.hidden = true
+  }
 
-  if(themeToggleBtn){
-    themeToggleBtn.addEventListener('click', ()=>{
-      const isDark = document.body.classList.contains('dark')
-      const newTheme = isDark ? 'light' : 'dark'
-      applyTheme(newTheme)
-      try{ localStorage.setItem('pt-theme', newTheme) }catch(e){}
+  function showToast(message, type = '') {
+    const toast = document.createElement('div')
+    toast.className = `pt-toast ${type}`
+    toast.textContent = message
+    els.toasts.appendChild(toast)
+    window.setTimeout(() => toast.remove(), 4200)
+  }
+
+  function openModal(modal, focusTarget) {
+    modal.hidden = false
+    modal.setAttribute('aria-hidden', 'false')
+    document.body.style.overflow = 'hidden'
+    window.setTimeout(() => (focusTarget || modal.querySelector('input,button'))?.focus(), 0)
+  }
+
+  function closeModal(modal) {
+    modal.setAttribute('aria-hidden', 'true')
+    modal.hidden = true
+    if (!document.querySelector('.pt-modal[aria-hidden="false"]')) document.body.style.overflow = ''
+  }
+
+  function trapFocus(event, modal) {
+    if (event.key !== 'Tab' || modal.getAttribute('aria-hidden') === 'true') return
+    const focusable = [...modal.querySelectorAll('button:not([disabled]),input:not([disabled]),a[href]')].filter(el => !el.hidden)
+    if (!focusable.length) return
+    const first = focusable[0], last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+  }
+
+  function openActionDialog({ title, body, submitLabel = 'Save', destructive = false, handler, focusFrom }) {
+    state.actionHandler = handler
+    state.actionReturnFocus = focusFrom || document.activeElement
+    els.actionTitle.textContent = title
+    els.actionBody.innerHTML = body
+    els.actionSubmit.textContent = submitLabel
+    els.actionSubmit.className = destructive ? 'pt-btn pt-btn-danger' : 'pt-btn pt-btn-primary'
+    openModal(els.actionModal, els.actionBody.querySelector('input') || els.actionSubmit)
+  }
+
+  function closeActionDialog() {
+    closeModal(els.actionModal)
+    state.actionHandler = null
+    state.actionReturnFocus?.focus?.()
+  }
+
+  function selectedServerPackage() {
+    return state.serverPackages[state.selectedId]
+  }
+
+  function openRenameDialog(pkg, focusFrom) {
+    const server = state.serverPackages[pkg.id]
+    openActionDialog({
+      title: 'Rename package',
+      body: `<div class="pt-form-group"><label for="pt-action-value">Package name</label><input id="pt-action-value" name="value" value="${escapeHtml(server?.customName || pkg.title)}" autocomplete="off"><p class="pt-field-hint">Leave empty to use the carrier and tracking number.</p></div>`,
+      submitLabel: 'Save name', focusFrom,
+      handler: async form => {
+        await request('PUT', { shipper: server.shipper, trackingCode: server.trackingCode || server.code, customName: form.value.trim() })
+        await loadPackages()
+        showToast('Package name updated.')
+      }
     })
   }
 
-  // Activate/Delete handlers are wired earlier (use real API calls). No dummy popups.
-
-  // (duplicate theme listener removed; theme handled via persistent toggle above)
-
-  // initial render
-  // load packages from API and render list
-  async function loadPackagesFromApi(){
-    try{
-      const resp = await fetch('api.php')
-      if(!resp.ok) throw new Error('network')
-      const data = await resp.json()
-      const pkgs = data.packages || []
-      // map server package shape to the UI's expected shape
-      const mapped = []
-      pkgs.forEach((p, idx) => {
-        const id = p.trackingCode ? `${p.shipper}-${p.trackingCode}` : `pkg-${idx}`
-        // store full server object for later detail/history rendering
-        serverPackages[id] = p
-        mapped.push({
-          id,
-          shipper: p.shipper || '',
-          title: p.customName || ((p.shipper && p.trackingCode) ? `${p.shipper} • ${p.trackingCode}` : (p.trackingCode||p.shipper||'Package')),
-          status: p.packageStatus || '',
-          inactive: p.metadata && p.metadata.status === 'inactive',
-          code: p.trackingCode || p.code || ''
-        })
-      })
-      // populate PACKAGES for rendering
-      PACKAGES = mapped
-      // populate HISTORY from server objects if they include events (map by UI id)
-      HISTORY = {}
-      pkgs.forEach((p, idx) => {
-        const id = p.trackingCode ? `${p.shipper}-${p.trackingCode}` : `pkg-${idx}`
-        if (p.events) HISTORY[id] = p.events.slice()
-      })
-      renderList()
-      // if a package was selected before reload, re-render its details (do not force-open mobile view)
-      if(selectedId){
-        const still = mapped.some(x=>x.id === selectedId)
-        if(still){
-          renderHistory(selectedId)
-          renderDetails(selectedId)
-        } else {
-          selectedId = null
-        }
+  function openDeleteDialog() {
+    const pkg = selectedServerPackage()
+    const display = state.packages.find(item => item.id === state.selectedId)
+    if (!pkg || !display) return
+    openActionDialog({
+      title: 'Delete package?',
+      body: `<p class="pt-confirm-copy">This permanently removes <span class="pt-confirm-name">${escapeHtml(display.title)}</span> and its saved tracking history.</p>`,
+      submitLabel: 'Delete package', destructive: true,
+      handler: async () => {
+        await request('DELETE', { shipper: pkg.shipper, trackingCode: pkg.trackingCode || pkg.code })
+        clearSelection()
+        els.detail.classList.remove('show')
+        els.detail.setAttribute('aria-hidden', 'true')
+        await loadPackages()
+        showToast('Package deleted.')
       }
-      updateActivateLabel()
-    }catch(err){
-      // on error, show empty list and log warning
-      console.warn('Could not load packages from api.php', err)
-      PACKAGES = []
-      HISTORY = {}
-      renderList()
-      updateActivateLabel()
+    })
+  }
+
+  async function toggleActive() {
+    const pkg = selectedServerPackage()
+    if (!pkg) return
+    const current = pkg.metadata?.status || 'active'
+    const next = current === 'active' ? 'inactive' : 'active'
+    els.activate.disabled = true
+    try {
+      await request('PUT', { shipper: pkg.shipper, trackingCode: pkg.trackingCode || pkg.code, status: next })
+      await loadPackages()
+      showToast(next === 'active' ? 'Package restored.' : 'Package archived.')
+    } catch (error) {
+      console.error(error)
+      showToast('Could not update package status.', 'error')
+    } finally {
+      els.activate.disabled = false
     }
   }
 
-  loadPackagesFromApi()
+  async function loadShippers() {
+    if (state.shippers.length) return true
+    try {
+      const response = await fetch('api.php?shippers=1')
+      if (!response.ok) throw new Error('Failed to load carriers')
+      const data = await response.json()
+      state.shippers = data.shippers || []
+      state.defaultCountry = data.defaults?.country || 'NL'
+      state.defaultAppriseUrl = data.defaults?.appriseUrl || ''
+      return true
+    } catch (error) {
+      console.error(error)
+      showToast('Could not load carriers.', 'error')
+      return false
+    }
+  }
 
-  // NOTE: Do not auto-open details on page load. Let user select a package first on mobile.
-  // Previously we pre-selected the first package here which caused mobile to switch to details immediately.
-  // If you want to pre-select visually but not open mobile details, we could show selection without opening.
+  async function showWizard() {
+    if (state.submittingPackage) return
+    els.add.disabled = true
+    const ready = await loadShippers()
+    els.add.disabled = false
+    if (!ready) return
+    state.wizardData = emptyWizardData()
+    state.wizardStep = 1
+    showWizardStep(1)
+    openModal(els.wizard, $('pt-package-desc'))
+  }
 
+  function showWizardStep(step) {
+    state.wizardStep = step
+    for (let i = 1; i <= 3; i++) $(`pt-wizard-step-${i}`).hidden = i !== step
+    els.wizardProgress.textContent = `Step ${step} of 3`
+    els.progressBar.style.width = `${step / 3 * 100}%`
+    els.wizardBack.hidden = step === 1
+    els.wizardNext.hidden = step === 2
+    els.wizardNext.textContent = step === 3 ? 'Add package' : 'Next'
+    setWizardError('')
+    if (step === 1) $('pt-package-desc').value = state.wizardData.description
+    if (step === 2) renderShippers()
+    if (step === 3) renderTrackingFields()
+  }
 
-  // keyboard: ESC to close detail on mobile
-  window.addEventListener('keydown', (e)=>{
-    if(e.key==='Escape'){
-      detailContainer.classList.remove('show')
-      detailContainer.setAttribute('aria-hidden','true')
+  function renderShippers() {
+    els.shipperGrid.innerHTML = ''
+    state.shippers.forEach(shipper => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = `pt-shipper-btn${state.wizardData.shipper === shipper.id ? ' selected' : ''}`
+      button.textContent = shipper.name
+      button.addEventListener('click', () => {
+        state.wizardData.shipper = shipper.id
+        state.wizardData.shipperFields = shipper.fields || []
+        showWizardStep(3)
+        window.setTimeout(() => $('pt-tracking-number').focus(), 0)
+      })
+      els.shipperGrid.appendChild(button)
+    })
+  }
+
+  function renderTrackingFields() {
+    $('pt-tracking-number').value = state.wizardData.trackingNumber
+    els.extraFields.innerHTML = ''
+    state.wizardData.shipperFields.forEach(field => {
+      const group = document.createElement('div')
+      group.className = 'pt-form-group'
+      const value = state.wizardData.extraFields[field.id] || (field.id === 'country' ? state.defaultCountry : '')
+      group.innerHTML = `<label for="pt-field-${escapeHtml(field.id)}">${escapeHtml(field.label)}${field.required ? ' *' : ''}</label><input type="${escapeHtml(field.type || 'text')}" id="pt-field-${escapeHtml(field.id)}" data-field="${escapeHtml(field.id)}" ${field.required ? 'required' : ''} value="${escapeHtml(value)}">`
+      els.extraFields.appendChild(group)
+    })
+  }
+
+  function setWizardError(message, input) {
+    els.wizardError.textContent = message
+    els.wizardError.hidden = !message
+    document.querySelectorAll('#pt-wizard input[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'))
+    if (input) {
+      input.setAttribute('aria-invalid', 'true')
+      input.focus()
+    }
+  }
+
+  function validateWizardStep() {
+    if (state.wizardStep === 1) {
+      const input = $('pt-package-desc')
+      const value = input.value.trim()
+      if (!value) { setWizardError('Enter a package name.', input); return false }
+      state.wizardData.description = value
+    }
+    if (state.wizardStep === 3) {
+      const tracking = $('pt-tracking-number')
+      if (!tracking.value.trim()) { setWizardError('Enter a tracking number.', tracking); return false }
+      const missing = [...els.extraFields.querySelectorAll('input[required]')].find(input => !input.value.trim())
+      if (missing) { setWizardError('Complete the required field.', missing); return false }
+      state.wizardData.trackingNumber = tracking.value.trim()
+      state.wizardData.extraFields = [...els.extraFields.querySelectorAll('[data-field]')].reduce((result, input) => {
+        result[input.dataset.field] = input.value.trim()
+        return result
+      }, {})
+    }
+    return true
+  }
+
+  async function submitPackage() {
+    if (state.submittingPackage) return
+    state.submittingPackage = true
+    els.wizardNext.disabled = true
+    els.wizardNext.textContent = 'Adding…'
+    els.add.disabled = true
+    closeModal(els.wizard)
+    showToast('Adding package…')
+    try {
+      const response = await fetch('api.php', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          shipper:state.wizardData.shipper,
+          trackingCode:state.wizardData.trackingNumber,
+          customName:state.wizardData.description,
+          appriseUrl:state.defaultAppriseUrl,
+          ...state.wizardData.extraFields
+        })
+      })
+      if (!response.ok) throw new Error('Failed to add package')
+      const result = await response.json()
+      if (result.success === false) throw new Error(result.message || 'Failed to add package')
+      await loadPackages()
+      showToast('Package added.')
+    } catch (error) {
+      console.error(error)
+      showWizardStep(3)
+      openModal(els.wizard, $('pt-tracking-number'))
+      setWizardError('Could not add this package. Check the tracking details and try again.')
+    } finally {
+      state.submittingPackage = false
+      els.wizardNext.disabled = false
+      els.wizardNext.textContent = 'Add package'
+      els.add.disabled = false
+    }
+  }
+
+  els.filter.addEventListener('input', renderList)
+  els.reload.addEventListener('click', loadPackages)
+  els.back.addEventListener('click', () => { els.detail.classList.remove('show'); els.detail.setAttribute('aria-hidden', 'true') })
+  els.add.addEventListener('click', showWizard)
+  els.activate.addEventListener('click', toggleActive)
+  els.delete.addEventListener('click', openDeleteDialog)
+
+  els.wizardClose.addEventListener('click', () => closeModal(els.wizard))
+  els.wizard.querySelector('[data-close-modal]').addEventListener('click', () => closeModal(els.wizard))
+  els.wizardBack.addEventListener('click', () => showWizardStep(Math.max(1, state.wizardStep - 1)))
+  els.wizardNext.addEventListener('click', () => {
+    if (!validateWizardStep()) return
+    if (state.wizardStep === 3) submitPackage()
+    else showWizardStep(state.wizardStep + 1)
+  })
+  els.wizard.addEventListener('keydown', event => trapFocus(event, els.wizard))
+
+  els.actionClose.addEventListener('click', closeActionDialog)
+  els.actionCancel.addEventListener('click', closeActionDialog)
+  els.actionModal.querySelector('[data-close-modal]').addEventListener('click', closeActionDialog)
+  els.actionModal.addEventListener('keydown', event => trapFocus(event, els.actionModal))
+  els.actionForm.addEventListener('submit', async event => {
+    event.preventDefault()
+    if (!state.actionHandler) return
+    const form = Object.fromEntries(new FormData(els.actionForm))
+    els.actionSubmit.disabled = true
+    try {
+      await state.actionHandler(form)
+      closeActionDialog()
+    } catch (error) {
+      console.error(error)
+      showToast('The change could not be saved.', 'error')
+    } finally {
+      els.actionSubmit.disabled = false
     }
   })
 
-})();
+  function applyTheme(theme) {
+    const dark = theme === 'dark'
+    document.body.classList.toggle('dark', dark)
+    els.theme.setAttribute('aria-pressed', String(dark))
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#0d121b' : '#f4f6f8'
+  }
+  try {
+    applyTheme(localStorage.getItem('pt-theme') || (matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light'))
+  } catch (_) { applyTheme('light') }
+  els.theme.addEventListener('click', () => {
+    const next = document.body.classList.contains('dark') ? 'light' : 'dark'
+    applyTheme(next)
+    try { localStorage.setItem('pt-theme', next) } catch (_) {}
+  })
+
+  window.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return
+    if (els.actionModal.getAttribute('aria-hidden') === 'false') closeActionDialog()
+    else if (els.wizard.getAttribute('aria-hidden') === 'false') closeModal(els.wizard)
+    else { els.detail.classList.remove('show'); els.detail.setAttribute('aria-hidden', 'true') }
+  })
+
+  loadPackages()
+})()
